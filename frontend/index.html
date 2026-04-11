@@ -2,17 +2,39 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>TCC - Monitoramento</title>
+  <title>Monitoramento Inteligente</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <h1>📊 Monitoramento de Opinião</h1>
+  <div class="container">
 
-  <input type="text" id="searchInput" placeholder="Digite algo...">
-  <button onclick="buscar()">Buscar</button>
+    <h1>Monitoramento de Sentimentos</h1>
+    <p>Analise tendências em tempo real</p>
 
-  <div id="resultados"></div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Digite um termo...">
+
+      <div class="date-range">
+        <label>De:</label>
+        <input type="date" id="dataInicio">
+
+        <label>Até:</label>
+        <input type="date" id="dataFim">
+      </div>
+
+      <button onclick="buscar()">Buscar</button>
+    </div>
+
+    <select id="filtro">
+    <option value="recentes">Mais recentes</option>
+    <option value="comentarios">Mais comentados</option>
+    </select>
+    
+
+    <div id="resultados"></div>
+
+  </div>
 
   <script src="script.js"></script>
 </body>

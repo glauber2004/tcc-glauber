@@ -1,26 +1,93 @@
 body {
-  font-family: Arial;
-  background: #0f172a;
-  color: white;
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #0f172a, #020617);
+  color: #e2e8f0;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
   text-align: center;
+  padding: 40px;
+}
+
+h1 {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+}
+
+p {
+  color: #94a3b8;
+}
+
+.search-box {
+  margin-top: 30px;
 }
 
 input {
-  padding: 10px;
-  width: 250px;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  margin: 5px;
+  width: 220px;
+  background: #1e293b;
+  color: white;
+}
+
+.date-range {
+  margin-top: 10px;
 }
 
 button {
-  padding: 10px;
-  margin: 10px;
-  background: green;
-  color: white;
+  margin-top: 15px;
+  padding: 12px 25px;
+  border-radius: 10px;
   border: none;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+#resultados {
+  margin-top: 40px;
 }
 
 .card {
   background: #1e293b;
-  margin: 10px;
+  margin: 15px auto;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: left;
+  box-shadow: 0 0 15px rgba(0,0,0,0.3);
+}
+
+.card a {
+  color: #22c55e;
+  text-decoration: none;
+}
+
+.card a:hover {
+  text-decoration: underline;
+}
+
+select {
   padding: 10px;
   border-radius: 8px;
+  background: #1e293b;
+  color: white;
+  border: none;
+  margin-top: 10px;
+}
+
+.metrics {
+  background: #020617;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
 }
