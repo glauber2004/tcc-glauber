@@ -58,22 +58,42 @@ router.get("/buscar", async (req, res) => {
 
     // Transforma os dados e analisa sentimento
     let posts = unicos.map(item => {
-      const texto = item.data.title;
-      const dataPost = new Date(item.data.created_utc * 1000);
-      const link = `https://www.reddit.com${item.data.permalink}`;
-      const comentarios = item.data.num_comments;
+  const titulo = item.data.title || "";
+  const descricao = item.data.selftext || "";
 
-      const analise = analisarSentimento(texto);
+  const textoCompleto = `${titulo} ${descricao}`.toLowerCase();
 
-      return {
-        texto,
-        dataPost,
-        link,
-        comentarios,
-        sentimento: analise.sentimento,
-        score: analise.score
-      };
-    });
+  const dataPost = new Date(item.data.created_utc * 1000);
+  const link = `https://www.reddit.com${item.data.permalink}`;
+  const comentarios = item.data.num_comments;
+
+  const analise = analisarSentimento(textoCompleto);
+
+  return {
+    texto: titulo,
+    descricao,
+    textoCompleto,
+    dataPost,
+    link,
+    comentarios,
+    sentimento: analise.sentimento,
+    score: analise.score
+  };
+});
+
+
+const palavra1 = req.query.q?.toLowerCase() || "";
+const palavra2 = req.query.extra?.toLowerCase() || "";
+
+posts = posts.filter(post => {
+  const texto = post.textoCompleto;
+
+  const temPalavra1 = texto.includes(palavra1);
+  const temPalavra2 = palavra2 ? texto.includes(palavra2) : true;
+
+  return temPalavra1 && temPalavra2;
+});
+
 
     // Filtro por data
     posts = posts.filter(post => {

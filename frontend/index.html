@@ -13,25 +13,34 @@
     <p>Analise tendências em tempo real</p>
 
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Digite um termo...">
 
-      <div class="date-range">
-        <label>De:</label>
-        <input type="date" id="dataInicio">
+  <input type="text" id="searchInput" placeholder="Palavra principal (ex: futebol)">
+  
+  <input type="text" id="extraInput" placeholder="Palavra extra (opcional ex: nike)">
 
-        <label>Até:</label>
-        <input type="date" id="dataFim">
-      </div>
-
-      <button onclick="buscar()">Buscar</button>
+  <div class="date-range">
+    <div>
+      <label>De</label>
+      <input type="date" id="dataInicio">
     </div>
 
-    <select id="filtro">
+    <div>
+      <label>Até</label>
+      <input type="date" id="dataFim">
+    </div>
+  </div>
+
+  <select id="filtro">
     <option value="recentes">Mais recentes</option>
     <option value="comentarios">Mais comentados</option>
-    </select>
-    
+  </select>
 
+  <button onclick="buscar()">Buscar</button>
+
+</div>
+
+    
+    
     <div id="resultados"></div>
 
   </div>
