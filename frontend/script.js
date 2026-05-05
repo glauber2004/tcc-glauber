@@ -5,14 +5,87 @@ let chartDonut = null;
 let chartBar   = null;
 let chartLine  = null;
 
-let todosOsPosts = [];     // todos os posts retornados
-let postsFiltrados = [];   // filtro ativo
-let paginaAtual = 1;
+let todosOsPosts     = [];
+let postsFiltrados   = [];
+let paginaAtual      = 1;
 const POSTS_POR_PAGINA = 10;
 let filtroAtivo = 'todos';
 
 const POSITIVOS = ["bom","ótimo","excelente","incrível","maravilhoso","perfeito","gostei","amei","top","fantástico","feliz","sucesso","melhor","recomendo"];
 const NEGATIVOS = ["ruim","péssimo","horrível","terrível","odio","problema","crise","lixo","decepcionante","triste","fracasso","pior","não recomendo"];
+
+/* ========================
+   DARK / LIGHT MODE
+======================== */
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('sr-theme', next);
+  // Atualiza cores dos gráficos se existirem
+  atualizarCoresGraficos();
+}
+
+function carregarTheme() {
+  const saved = localStorage.getItem('sr-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+}
+
+function atualizarCoresGraficos() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const tickColor = isDark ? '#8ba3c7' : '#475569';
+  const gridColor = isDark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.06)';
+
+  [chartBar, chartLine].forEach(chart => {
+    if (!chart) return;
+    chart.options.scales.x.ticks.color = tickColor;
+    chart.options.scales.y.ticks.color = tickColor;
+    chart.options.scales.x.grid.color  = gridColor;
+    chart.options.scales.y.grid.color  = gridColor;
+    chart.update();
+  });
+}
+
+/* ========================
+   TÓPICOS / EXEMPLOS DINÂMICOS
+======================== */
+const TOPICOS_EXEMPLOS = {
+  tec:   { id: 'exemplo-tec',    termos: ['Inteligência Artificial','GPT-5','Apple Intelligence','Google Gemini','Samsung Galaxy'] },
+  ent:   { id: 'exemplo-ent',    termos: ['Netflix','Stranger Things','Oscar 2025','Squid Game','Marvel'] },
+  games: { id: 'exemplo-games',  termos: ['Fortnite','GTA 6','Minecraft','eSports','Call of Duty'] },
+  pol:   { id: 'exemplo-pol',    termos: ['Eleições','Lula','Trump','Congresso','Parlamento Europeu'] },
+  eco:   { id: 'exemplo-eco',    termos: ['Bitcoin','Dólar','Inflação','IBOVESPA','Criptomoedas'] },
+};
+
+function carregarExemplosDinamicos() {
+  // Usa o dia atual para rotacionar os exemplos — sem precisar de API externa
+  const hoje = new Date();
+  const seed  = hoje.getDate() + hoje.getMonth() * 31; // 0-365 aprox
+
+  Object.entries(TOPICOS_EXEMPLOS).forEach(([key, config], idx) => {
+    const termos = config.termos;
+    const escolhido = termos[(seed + idx * 3) % termos.length];
+    const el = document.getElementById(config.id);
+    if (el) el.textContent = escolhido;
+  });
+}
+
+function pesquisarTopico(termo) {
+  document.getElementById('searchInput').value = termo;
+  document.getElementById('searchInput2').value = '';
+  mostrarTela('tela-busca');
+  // Pequeno delay para a animação acontecer antes de buscar
+  setTimeout(() => buscar(), 150);
+}
+
+/* ========================
+   NAVEGAÇÃO DE TELAS
+======================== */
+function mostrarTela(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id)?.classList.remove('hidden');
+}
 
 /* ========================
    BUSCA
@@ -53,7 +126,6 @@ function renderizarResultados(data, termo, extra) {
   document.getElementById("results-term").textContent = label;
   document.getElementById("results-count").textContent = `${total} publicações analisadas`;
 
-  // Contagens
   const nPos = todosOsPosts.filter(p => obterClasse(p.sentimento) === 'pos').length;
   const nNeu = todosOsPosts.filter(p => obterClasse(p.sentimento) === 'neu').length;
   const nNeg = todosOsPosts.filter(p => obterClasse(p.sentimento) === 'neg').length;
@@ -122,7 +194,7 @@ function renderizarTermometro(posts) {
   if (!posts.length) return;
   const mediaScore = posts.reduce((a, p) => a + (p.score || 0), 0) / posts.length;
   const normalizado = Math.max(-2, Math.min(2, mediaScore));
-  const indice = Math.round(normalizado * 50); // -100 a +100
+  const indice = Math.round(normalizado * 50);
   const pct = ((normalizado + 2) / 4) * 100;
 
   const el = document.getElementById("thermo-value");
@@ -138,8 +210,19 @@ function renderizarTermometro(posts) {
   }, 300);
 }
 
+/* ── CORES ADAPTATIVAS PARA GRAFICOS ── */
+function getChartColors() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    tick:  isDark ? '#8ba3c7' : '#475569',
+    grid:  isDark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.06)',
+    border: isDark ? '#182033' : '#ffffff',
+  };
+}
+
 /* ── DONUT ── */
 function renderizarDonut(nPos, nNeu, nNeg, pctPos, pctNeu, pctNeg) {
+  const { border } = getChartColors();
   const ctx = document.getElementById("chartDonut").getContext("2d");
   if (chartDonut) chartDonut.destroy();
 
@@ -150,7 +233,7 @@ function renderizarDonut(nPos, nNeu, nNeg, pctPos, pctNeu, pctNeg) {
       datasets: [{
         data: [nPos, nNeu, nNeg],
         backgroundColor: ['#22c55e','#475569','#ef4444'],
-        borderColor: '#182033',
+        borderColor: border,
         borderWidth: 3,
         hoverBorderWidth: 4,
       }]
@@ -162,16 +245,13 @@ function renderizarDonut(nPos, nNeu, nNeg, pctPos, pctNeu, pctNeg) {
     }
   });
 
-  // Centro do donut
   const maior = Math.max(nPos, nNeu, nNeg);
   const dominante = nPos === maior ? 'Positivo' : nNeg === maior ? 'Negativo' : 'Neutro';
-  const clsDom = nPos === maior ? 'pos' : nNeg === maior ? 'neg' : 'neu';
   document.getElementById("donut-center").innerHTML = `
     <span style="font-size:1.4rem">${nPos === maior ? '😊' : nNeg === maior ? '😡' : '😐'}</span>
     <span class="donut-sub" style="margin-top:4px">${dominante}</span>
   `;
 
-  // Legenda
   const leg = document.getElementById("donut-legend");
   const items = [
     { label:'Positivos', pct:pctPos, n:nPos, color:'#22c55e' },
@@ -190,6 +270,7 @@ function renderizarDonut(nPos, nNeu, nNeg, pctPos, pctNeu, pctNeg) {
 
 /* ── BARRA ── */
 function renderizarBarra(nPos, nNeu, nNeg) {
+  const { tick, grid } = getChartColors();
   const ctx = document.getElementById("chartBar").getContext("2d");
   if (chartBar) chartBar.destroy();
 
@@ -210,8 +291,8 @@ function renderizarBarra(nPos, nNeu, nNeg) {
       responsive: true,
       plugins: { legend: { display:false } },
       scales: {
-        x: { grid: { color:'rgba(255,255,255,.04)' }, ticks: { color:'#8ba3c7' } },
-        y: { grid: { color:'rgba(255,255,255,.05)' }, ticks: { color:'#8ba3c7' }, beginAtZero:true }
+        x: { grid: { color: grid }, ticks: { color: tick } },
+        y: { grid: { color: grid }, ticks: { color: tick }, beginAtZero:true }
       },
       animation: { duration: 900 }
     }
@@ -231,6 +312,7 @@ function renderizarLinha(posts) {
   const dias = Object.keys(porDia).sort();
   if (!dias.length) return;
 
+  const { tick, grid } = getChartColors();
   const ctx = document.getElementById("chartLine").getContext("2d");
   if (chartLine) chartLine.destroy();
 
@@ -274,12 +356,12 @@ function renderizarLinha(posts) {
       plugins: {
         legend: {
           display: true,
-          labels: { color:'#8ba3c7', font:{ size:12 }, boxWidth:14, borderRadius:4 }
+          labels: { color: tick, font:{ size:12 }, boxWidth:14, borderRadius:4 }
         }
       },
       scales: {
-        x: { grid:{ color:'rgba(255,255,255,.04)' }, ticks:{ color:'#8ba3c7', maxTicksLimit:10 } },
-        y: { grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#8ba3c7' }, beginAtZero:true }
+        x: { grid:{ color: grid }, ticks:{ color: tick, maxTicksLimit:10 } },
+        y: { grid:{ color: grid }, ticks:{ color: tick }, beginAtZero:true }
       },
       animation: { duration: 1000 }
     }
@@ -361,7 +443,6 @@ function filtrarPosts(tipo, btn) {
   filtroAtivo = tipo;
   paginaAtual = 1;
 
-  // Atualizar botões
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
@@ -444,7 +525,6 @@ function renderizarPostCard(post, i, container) {
 
 function togglePost(card) {
   const isOpen = card.classList.contains('open');
-  // Fechar todos
   document.querySelectorAll('.post-card.open').forEach(c => c.classList.remove('open'));
   if (!isOpen) card.classList.add('open');
 }
@@ -505,11 +585,6 @@ function escapar(txt) {
   return txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function mostrarTela(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  document.getElementById(id)?.classList.remove('hidden');
-}
-
 function voltarBusca() {
   mostrarTela('tela-busca');
 }
@@ -534,8 +609,17 @@ function exportarCSV() {
   URL.revokeObjectURL(url);
 }
 
-// Enter para buscar
+/* ========================
+   INICIALIZAÇÃO
+======================== */
 document.addEventListener('DOMContentLoaded', () => {
+  // Carrega tema salvo
+  carregarTheme();
+
+  // Carrega exemplos dinâmicos na tela home
+  carregarExemplosDinamicos();
+
+  // Enter para buscar
   document.getElementById('searchInput')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') buscar();
   });

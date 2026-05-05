@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,12 +10,154 @@
 </head>
 <body>
 
-  <!-- ========== TELA 1: BUSCA ========== -->
-  <div id="tela-busca" class="screen">
+  <!-- ========== BOTÃO DARK/LIGHT MODE ========== -->
+  <button class="theme-toggle" onclick="toggleTheme()" title="Alternar modo">
+    <span class="theme-icon-dark">🌙</span>
+    <span class="theme-icon-light">☀️</span>
+  </button>
+
+  <!-- ========== TELA 0: BEM-VINDO ========== -->
+  <div id="tela-boas-vindas" class="screen">
+    <div class="bg-grid"></div>
+    <div class="welcome-scene">
+      <div class="welcome-logo-wrap">
+        <div class="welcome-logo-mark">SR</div>
+        <div class="welcome-logo-glow"></div>
+      </div>
+      <div class="welcome-badge">✦ Análise de Sentimentos com IA</div>
+      <h1 class="welcome-title">Bem-vindo ao<br><em>SentimentRadar</em></h1>
+      <p class="welcome-desc">
+        Descubra o que o mundo <strong>pensa e sente</strong> sobre qualquer assunto.<br>
+        Analisamos publicações reais do Reddit em tempo real — com gráficos,<br>
+        tendências emocionais e dados concretos ao seu alcance.
+      </p>
+      <div class="welcome-features">
+        <div class="wf-item"><span>📊</span><span>Gráficos interativos</span></div>
+        <div class="wf-item"><span>🌡️</span><span>Temperatura emocional</span></div>
+        <div class="wf-item"><span>☁️</span><span>Nuvem de palavras</span></div>
+        <div class="wf-item"><span>📥</span><span>Exportar CSV</span></div>
+      </div>
+      <button class="btn-continuar" onclick="mostrarTela('tela-home')">
+        Continuar <span class="btn-arrow">→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========== TELA 1: HOME / TÓPICOS ========== -->
+  <div id="tela-home" class="screen hidden">
     <div class="bg-grid"></div>
 
     <header class="header">
       <div class="header-inner">
+        <div class="logo">
+          <div class="logo-mark">SR</div>
+          <span class="logo-text">SentimentRadar</span>
+        </div>
+        <span class="pill">Reddit · Tempo real</span>
+      </div>
+    </header>
+
+    <main class="home-main">
+      <div class="home-hero">
+        <div class="eyebrow">✦ Explore os temas do momento</div>
+        <h2 class="home-title">O que está em alta<br><em>hoje?</em></h2>
+        <p class="home-sub">Escolha um dos tópicos mais pesquisados ou faça sua própria busca.</p>
+      </div>
+
+      <div class="topics-grid">
+
+        <div class="topic-card" onclick="pesquisarTopico('Inteligência Artificial')">
+          <div class="topic-icon">💻</div>
+          <div class="topic-body">
+            <div class="topic-number">01</div>
+            <div class="topic-title">Tecnologia</div>
+            <div class="topic-desc">Inteligência artificial, smartphones, software, programação</div>
+            <div class="topic-example">
+              <span class="topic-example-label">Em destaque:</span>
+              <span class="topic-example-text" id="exemplo-tec">Carregando...</span>
+            </div>
+          </div>
+          <div class="topic-arrow">→</div>
+        </div>
+
+        <div class="topic-card" onclick="pesquisarTopico('Netflix')">
+          <div class="topic-icon">🎬</div>
+          <div class="topic-body">
+            <div class="topic-number">02</div>
+            <div class="topic-title">Entretenimento</div>
+            <div class="topic-desc">Filmes, séries, celebridades, streaming</div>
+            <div class="topic-example">
+              <span class="topic-example-label">Em destaque:</span>
+              <span class="topic-example-text" id="exemplo-ent">Carregando...</span>
+            </div>
+          </div>
+          <div class="topic-arrow">→</div>
+        </div>
+
+        <div class="topic-card" onclick="pesquisarTopico('Fortnite')">
+          <div class="topic-icon">🎮</div>
+          <div class="topic-body">
+            <div class="topic-number">03</div>
+            <div class="topic-title">Jogos (Games)</div>
+            <div class="topic-desc">Jogos online, lançamentos, eSports</div>
+            <div class="topic-example">
+              <span class="topic-example-label">Em destaque:</span>
+              <span class="topic-example-text" id="exemplo-games">Carregando...</span>
+            </div>
+          </div>
+          <div class="topic-arrow">→</div>
+        </div>
+
+        <div class="topic-card" onclick="pesquisarTopico('Eleições')">
+          <div class="topic-icon">🏛️</div>
+          <div class="topic-body">
+            <div class="topic-number">04</div>
+            <div class="topic-title">Política</div>
+            <div class="topic-desc">Eleições, governos, líderes, conflitos internacionais</div>
+            <div class="topic-example">
+              <span class="topic-example-label">Em destaque:</span>
+              <span class="topic-example-text" id="exemplo-pol">Carregando...</span>
+            </div>
+          </div>
+          <div class="topic-arrow">→</div>
+        </div>
+
+        <div class="topic-card" onclick="pesquisarTopico('Bitcoin')">
+          <div class="topic-icon">📈</div>
+          <div class="topic-body">
+            <div class="topic-number">05</div>
+            <div class="topic-title">Economia e Finanças</div>
+            <div class="topic-desc">Investimentos, criptomoedas, inflação</div>
+            <div class="topic-example">
+              <span class="topic-example-label">Em destaque:</span>
+              <span class="topic-example-text" id="exemplo-eco">Carregando...</span>
+            </div>
+          </div>
+          <div class="topic-arrow">→</div>
+        </div>
+
+      </div>
+
+      <div class="home-custom-search">
+        <div class="hcs-icon">🔍</div>
+        <div class="hcs-body">
+          <div class="hcs-title">Quero pesquisar algo específico</div>
+          <div class="hcs-desc">Digite qualquer tema e veja a análise de sentimentos em tempo real</div>
+        </div>
+        <button class="btn-custom-search" onclick="mostrarTela('tela-busca')">
+          Pesquisar <span>→</span>
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <!-- ========== TELA 2: BUSCA ========== -->
+  <div id="tela-busca" class="screen hidden">
+    <div class="bg-grid"></div>
+
+    <header class="header">
+      <div class="header-inner">
+        <button class="btn-back" onclick="mostrarTela('tela-home')">← Início</button>
         <div class="logo">
           <div class="logo-mark">SR</div>
           <span class="logo-text">SentimentRadar</span>
@@ -52,11 +194,17 @@
         <div class="filters-bar">
           <div class="filter-item">
             <label>De</label>
-            <input type="date" id="dataInicio">
+            <div class="date-input-wrap">
+              <span class="date-icon">📅</span>
+              <input type="date" id="dataInicio">
+            </div>
           </div>
           <div class="filter-item">
             <label>Até</label>
-            <input type="date" id="dataFim">
+            <div class="date-input-wrap">
+              <span class="date-icon">📅</span>
+              <input type="date" id="dataFim">
+            </div>
           </div>
           <div class="filter-item">
             <label>Ordenar</label>
@@ -78,7 +226,7 @@
     </main>
   </div>
 
-  <!-- ========== TELA 2: LOADING ========== -->
+  <!-- ========== TELA 3: LOADING ========== -->
   <div id="tela-loading" class="screen hidden">
     <div class="loading-scene">
       <div class="radar-anim">
@@ -92,7 +240,7 @@
     </div>
   </div>
 
-  <!-- ========== TELA 3: RESULTADOS ========== -->
+  <!-- ========== TELA 4: RESULTADOS ========== -->
   <div id="tela-resultados" class="screen hidden">
 
     <header class="header">
