@@ -68,6 +68,9 @@ router.get("/buscar", async (req, res) => {
   const comentarios = item.data.num_comments;
 
   const analise = analisarSentimento(textoCompleto);
+  const autor = item.data.author || '[deletado]';
+  const upvotes = item.data.ups || 0;
+  const subreddit = item.data.subreddit || '';
 
   return {
     texto: titulo,
@@ -76,6 +79,9 @@ router.get("/buscar", async (req, res) => {
     dataPost,
     link,
     comentarios,
+    autor,
+    upvotes,
+    subreddit,
     sentimento: analise.sentimento,
     score: analise.score
   };

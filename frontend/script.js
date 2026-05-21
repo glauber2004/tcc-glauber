@@ -142,6 +142,8 @@ function renderizarResultados(data, termo, extra) {
   renderizarIntensidade(nPos, nNeu, nNeg, pctPos, pctNeu, pctNeg);
   renderizarMetricas(data, nPos, nNeu, nNeg, pctPos, pctNeg);
   renderizarWordCloud(todosOsPosts);
+  renderizarRankingPerfis(todosOsPosts);
+  renderizarEmocoesBoard(todosOsPosts);
   filtrarPosts('todos', document.querySelector('.filter-btn.active'));
 }
 
@@ -391,11 +393,19 @@ function renderizarMetricas(data, nPos, nNeu, nNeg, pctPos, pctNeg) {
   const maxComents = posts.length ? Math.max(...posts.map(p => p.comentarios)) : 0;
   const mediaScore = posts.length ? (posts.reduce((a,p) => a + (p.score||0), 0) / posts.length).toFixed(2) : 0;
 
+  // Pessoas impactadas = perfis únicos que interagiram (comentaram, curtiram ou compartilharam)
+  // Aproximação: cada post tem N comentários (N perfis únicos estimados) + upvotes (curtidas)
+  const totalInteracoes = posts.reduce((a, p) => a + (p.comentarios || 0) + (p.upvotes || 0), 0);
+  // Alcance estimado: cada comentário/upvote representa ~3 visualizadores passivos (media do setor)
+  const alcanceEstimado = Math.round(totalInteracoes * 3.2);
+
   const grid = document.getElementById("metrics-grid");
   grid.innerHTML = [
     { icon:'📋', label:'Total de publicações', value:total, sub:'coletadas e analisadas', accent:'blue-accent' },
     { icon:'💬', label:'Média de comentários', value:media, sub:'por publicação', accent:'blue-accent' },
     { icon:'🔥', label:'Máx. comentários', value:maxComents, sub:'em uma publicação', accent:'blue-accent' },
+    { icon:'👥', label:'Pessoas impactadas', value: totalInteracoes.toLocaleString('pt-BR'), sub:'interações únicas (comentários + curtidas)', accent:'blue-accent' },
+    { icon:'🌐', label:'Alcance estimado', value: alcanceEstimado.toLocaleString('pt-BR'), sub:'visualizações potenciais', accent:'blue-accent' },
     { icon:'😊', label:'Publicações positivas', value:`${pctPos}%`, sub:`${nPos} posts`, accent:'pos-accent' },
     { icon:'😡', label:'Publicações negativas', value:`${pctNeg}%`, sub:`${nNeg} posts`, accent:'neg-accent' },
     { icon:'📊', label:'Score médio', value:mediaScore > 0 ? '+'+mediaScore : mediaScore, sub:'índice de sentimento', accent: mediaScore > 0 ? 'pos-accent' : mediaScore < 0 ? 'neg-accent' : 'blue-accent' },
@@ -607,6 +617,130 @@ function exportarCSV() {
   const a = document.createElement('a');
   a.href = url; a.download = 'sentiment-radar.csv'; a.click();
   URL.revokeObjectURL(url);
+}
+
+/* ========================
+   RANKING DE PERFIS
+======================== */
+function renderizarRankingPerfis(posts) {
+  const freq = {};
+  posts.forEach(p => {
+    const autor = p.autor || '[deletado]';
+    if (autor === '[deletado]' || autor === 'AutoModerator') return;
+    if (!freq[autor]) freq[autor] = { total: 0, pos: 0, neg: 0, neu: 0, comentarios: 0 };
+    freq[autor].total++;
+    freq[autor].comentarios += (p.comentarios || 0);
+    const cls = obterClasse(p.sentimento);
+    if (cls === 'pos') freq[autor].pos++;
+    else if (cls === 'neg') freq[autor].neg++;
+    else freq[autor].neu++;
+  });
+
+  const ranking = Object.entries(freq)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 10);
+
+  const el = document.getElementById('ranking-perfis');
+  if (!el) return;
+
+  if (!ranking.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--txt3);padding:24px">Dados de autoria não disponíveis.</div>';
+    return;
+  }
+
+  const maxPosts = ranking[0][1].total;
+  el.innerHTML = ranking.map(([autor, d], i) => {
+    const pct = Math.round((d.total / maxPosts) * 100);
+    const dominante = d.pos >= d.neg && d.pos >= d.neu ? 'pos' : d.neg >= d.pos && d.neg >= d.neu ? 'neg' : 'neu';
+    const icone = dominante === 'pos' ? '😊' : dominante === 'neg' ? '😡' : '😐';
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="rank-num">${i+1}</span>`;
+    return `
+      <div class="perfil-rank-row">
+        <div class="rank-medal">${medal}</div>
+        <div class="rank-body">
+          <div class="rank-name">u/${escapar(autor)}</div>
+          <div class="rank-bar-wrap">
+            <div class="rank-bar-bg">
+              <div class="rank-bar-fill ${dominante}" style="width:${pct}%"></div>
+            </div>
+            <span class="rank-count">${d.total} pub.</span>
+          </div>
+          <div class="rank-tags">
+            <span class="rank-tag pos">😊 ${d.pos}</span>
+            <span class="rank-tag neu">😐 ${d.neu}</span>
+            <span class="rank-tag neg">😡 ${d.neg}</span>
+            <span class="rank-tag cmt">💬 ${d.comentarios.toLocaleString('pt-BR')}</span>
+          </div>
+        </div>
+        <div class="rank-emoji">${icone}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ========================
+   BOARD DE EMOÇÕES (PLUTCHIK)
+======================== */
+const EMOCOES_LEXICON = {
+  amor:       { icon: '❤️',  color: '#f43f5e', palavras: ['amor','amo','adoro','amei','paixão','carinho','querido','querida','coração','saudade','afeto','abraço','beijo','apaixonado','romântico','encanto'] },
+  alegria:    { icon: '😄',  color: '#f59e0b', palavras: ['feliz','alegria','ótimo','excelente','incrível','maravilhoso','perfeito','fantástico','top','animado','felicidade','contente','euforia','oba','uau','show','gostei','amei','sucesso','melhor','recomendo','bom'] },
+  surpresa:   { icon: '😲',  color: '#8b5cf6', palavras: ['surpresa','incrível','surpreendente','inesperado','nossa','uau','chocante','impressionante','nunca esperava','que absurdo','caramba','nossa senhora','meu deus','que','impossível'] },
+  medo:       { icon: '😨',  color: '#06b6d4', palavras: ['medo','terror','assustador','ansiedade','pavor','apavorante','ameaça','risco','perigoso','aterrador','preocupante','nervoso','angústia','tensão','pânico'] },
+  raiva:      { icon: '😡',  color: '#ef4444', palavras: ['raiva','ódio','odio','horrível','terrível','péssimo','lixo','absurdo','ridículo','revoltante','irritante','absurdo','vergonha','indignação','furioso','bravo','odeio','revolta'] },
+  tristeza:   { icon: '😢',  color: '#64748b', palavras: ['triste','tristeza','choro','decepção','decepcionante','frustração','fracasso','pior','lamentável','pesaroso','saudade','solidão','deprimido','dor','perda','chora'] },
+  nojo:       { icon: '🤢',  color: '#84cc16', palavras: ['nojo','repugnante','asqueroso','podre','fedorento','horrendo','nauseante','repulsivo','horroroso','grotesco','aversão','repulsa','que horror'] },
+  antecipacao:{ icon: '🤩',  color: '#f97316', palavras: ['ansioso','aguardando','expectativa','mal posso esperar','espero que','quero ver','quando sai','lançamento','novidade','quando vai','futuro','tendência','próximo','vem aí'] },
+};
+
+function renderizarEmocoesBoard(posts) {
+  const contagem = {};
+  Object.keys(EMOCOES_LEXICON).forEach(e => { contagem[e] = 0; });
+
+  posts.forEach(p => {
+    const texto = (p.textoCompleto || '').toLowerCase();
+    Object.entries(EMOCOES_LEXICON).forEach(([emocao, cfg]) => {
+      cfg.palavras.forEach(palavra => {
+        if (texto.includes(palavra)) { contagem[emocao]++; }
+      });
+    });
+  });
+
+  const total = Object.values(contagem).reduce((a, b) => a + b, 0) || 1;
+  const ranking = Object.entries(contagem)
+    .map(([key, val]) => ({ key, val, ...EMOCOES_LEXICON[key] }))
+    .sort((a, b) => b.val - a.val);
+
+  const el = document.getElementById('emocoes-board');
+  if (!el) return;
+
+  const maxVal = ranking[0]?.val || 1;
+
+  el.innerHTML = ranking.map((em, i) => {
+    const pct = Math.round((em.val / total) * 100);
+    const barPct = Math.round((em.val / maxVal) * 100);
+    const nomePT = {
+      amor:'Amor', alegria:'Alegria', surpresa:'Surpresa',
+      medo:'Medo', raiva:'Raiva', tristeza:'Tristeza',
+      nojo:'Nojo', antecipacao:'Antecipação'
+    }[em.key];
+
+    return `
+      <div class="emocao-row ${i === 0 ? 'emocao-destaque' : ''}">
+        <div class="emocao-icon">${em.icon}</div>
+        <div class="emocao-body">
+          <div class="emocao-name">${nomePT}</div>
+          <div class="emocao-bar-wrap">
+            <div class="emocao-bar-bg">
+              <div class="emocao-bar-fill" style="width:${barPct}%;background:${em.color}"></div>
+            </div>
+            <span class="emocao-pct" style="color:${em.color}">${pct}%</span>
+          </div>
+          <div class="emocao-count">${em.val} ocorrências</div>
+        </div>
+        ${i === 0 ? '<div class="emocao-crown">👑 Dominante</div>' : ''}
+      </div>
+    `;
+  }).join('');
 }
 
 /* ========================
