@@ -10,7 +10,6 @@
 </head>
 <body>
 
-  <!-- ========== BOTÃO DARK/LIGHT MODE ========== -->
   <button class="theme-toggle" onclick="toggleTheme()" title="Alternar modo">
     <span class="theme-icon-dark">🌙</span>
     <span class="theme-icon-light">☀️</span>
@@ -26,127 +25,82 @@
       </div>
       <div class="welcome-badge">✦ Análise de Sentimentos com IA</div>
       <h1 class="welcome-title">Bem-vindo ao<br><em>SentimentRadar</em></h1>
-      <p class="welcome-desc">
-        Descubra o que o mundo <strong>pensa e sente</strong> sobre qualquer assunto.<br>
-        Analisamos publicações reais do Reddit em tempo real — com gráficos,<br>
-        tendências emocionais e dados concretos ao seu alcance.
-      </p>
+      <p class="welcome-desc">Descubra o que o mundo <strong>pensa e sente</strong> sobre qualquer assunto.<br>
+        Analisamos publicações do Reddit, Bluesky e Web em tempo real.</p>
       <div class="welcome-features">
         <div class="wf-item"><span>📊</span><span>Gráficos interativos</span></div>
         <div class="wf-item"><span>🌡️</span><span>Temperatura emocional</span></div>
         <div class="wf-item"><span>☁️</span><span>Nuvem de palavras</span></div>
         <div class="wf-item"><span>📥</span><span>Exportar CSV</span></div>
       </div>
-      <button class="btn-continuar" onclick="mostrarTela('tela-home')">
-        Continuar <span class="btn-arrow">→</span>
-      </button>
+      <button class="btn-continuar" onclick="mostrarTela('tela-home')">Continuar <span class="btn-arrow">→</span></button>
     </div>
   </div>
 
-  <!-- ========== TELA 1: HOME / TÓPICOS ========== -->
+  <!-- ========== TELA 1: HOME ========== -->
   <div id="tela-home" class="screen hidden">
     <div class="bg-grid"></div>
-
     <header class="header">
       <div class="header-inner">
-        <div class="logo">
-          <div class="logo-mark">SR</div>
-          <span class="logo-text">SentimentRadar</span>
-        </div>
-        <span class="pill">Reddit · Tempo real</span>
+        <div class="logo"><div class="logo-mark">SR</div><span class="logo-text">SentimentRadar</span></div>
+        <span class="pill">Reddit · Bluesky · Web</span>
       </div>
     </header>
-
     <main class="home-main">
       <div class="home-hero">
         <div class="eyebrow">✦ Explore os temas do momento</div>
         <h2 class="home-title">O que está em alta<br><em>hoje?</em></h2>
         <p class="home-sub">Escolha um dos tópicos mais pesquisados ou faça sua própria busca.</p>
       </div>
-
       <div class="topics-grid">
-
         <div class="topic-card" onclick="pesquisarTopico('Inteligência Artificial')">
           <div class="topic-icon">💻</div>
           <div class="topic-body">
-            <div class="topic-number">01</div>
-            <div class="topic-title">Tecnologia</div>
-            <div class="topic-desc">Inteligência artificial, smartphones, software, programação</div>
-            <div class="topic-example">
-              <span class="topic-example-label">Em destaque:</span>
-              <span class="topic-example-text" id="exemplo-tec">Carregando...</span>
-            </div>
-          </div>
-          <div class="topic-arrow">→</div>
+            <div class="topic-number">01</div><div class="topic-title">Tecnologia</div>
+            <div class="topic-desc">Inteligência artificial, smartphones, software</div>
+            <div class="topic-example"><span class="topic-example-label">Em destaque:</span><span class="topic-example-text" id="exemplo-tec">Carregando...</span></div>
+          </div><div class="topic-arrow">→</div>
         </div>
-
         <div class="topic-card" onclick="pesquisarTopico('Netflix')">
           <div class="topic-icon">🎬</div>
           <div class="topic-body">
-            <div class="topic-number">02</div>
-            <div class="topic-title">Entretenimento</div>
+            <div class="topic-number">02</div><div class="topic-title">Entretenimento</div>
             <div class="topic-desc">Filmes, séries, celebridades, streaming</div>
-            <div class="topic-example">
-              <span class="topic-example-label">Em destaque:</span>
-              <span class="topic-example-text" id="exemplo-ent">Carregando...</span>
-            </div>
-          </div>
-          <div class="topic-arrow">→</div>
+            <div class="topic-example"><span class="topic-example-label">Em destaque:</span><span class="topic-example-text" id="exemplo-ent">Carregando...</span></div>
+          </div><div class="topic-arrow">→</div>
         </div>
-
         <div class="topic-card" onclick="pesquisarTopico('Fortnite')">
           <div class="topic-icon">🎮</div>
           <div class="topic-body">
-            <div class="topic-number">03</div>
-            <div class="topic-title">Jogos (Games)</div>
+            <div class="topic-number">03</div><div class="topic-title">Jogos (Games)</div>
             <div class="topic-desc">Jogos online, lançamentos, eSports</div>
-            <div class="topic-example">
-              <span class="topic-example-label">Em destaque:</span>
-              <span class="topic-example-text" id="exemplo-games">Carregando...</span>
-            </div>
-          </div>
-          <div class="topic-arrow">→</div>
+            <div class="topic-example"><span class="topic-example-label">Em destaque:</span><span class="topic-example-text" id="exemplo-games">Carregando...</span></div>
+          </div><div class="topic-arrow">→</div>
         </div>
-
         <div class="topic-card" onclick="pesquisarTopico('Eleições')">
           <div class="topic-icon">🏛️</div>
           <div class="topic-body">
-            <div class="topic-number">04</div>
-            <div class="topic-title">Política</div>
-            <div class="topic-desc">Eleições, governos, líderes, conflitos internacionais</div>
-            <div class="topic-example">
-              <span class="topic-example-label">Em destaque:</span>
-              <span class="topic-example-text" id="exemplo-pol">Carregando...</span>
-            </div>
-          </div>
-          <div class="topic-arrow">→</div>
+            <div class="topic-number">04</div><div class="topic-title">Política</div>
+            <div class="topic-desc">Eleições, governos, líderes, conflitos</div>
+            <div class="topic-example"><span class="topic-example-label">Em destaque:</span><span class="topic-example-text" id="exemplo-pol">Carregando...</span></div>
+          </div><div class="topic-arrow">→</div>
         </div>
-
         <div class="topic-card" onclick="pesquisarTopico('Bitcoin')">
           <div class="topic-icon">📈</div>
           <div class="topic-body">
-            <div class="topic-number">05</div>
-            <div class="topic-title">Economia e Finanças</div>
+            <div class="topic-number">05</div><div class="topic-title">Economia e Finanças</div>
             <div class="topic-desc">Investimentos, criptomoedas, inflação</div>
-            <div class="topic-example">
-              <span class="topic-example-label">Em destaque:</span>
-              <span class="topic-example-text" id="exemplo-eco">Carregando...</span>
-            </div>
-          </div>
-          <div class="topic-arrow">→</div>
+            <div class="topic-example"><span class="topic-example-label">Em destaque:</span><span class="topic-example-text" id="exemplo-eco">Carregando...</span></div>
+          </div><div class="topic-arrow">→</div>
         </div>
-
       </div>
-
       <div class="home-custom-search">
         <div class="hcs-icon">🔍</div>
         <div class="hcs-body">
           <div class="hcs-title">Quero pesquisar algo específico</div>
-          <div class="hcs-desc">Digite qualquer tema e veja a análise de sentimentos em tempo real</div>
+          <div class="hcs-desc">Digite qualquer tema e veja a análise em tempo real</div>
         </div>
-        <button class="btn-custom-search" onclick="mostrarTela('tela-busca')">
-          Pesquisar <span>→</span>
-        </button>
+        <button class="btn-custom-search" onclick="mostrarTela('tela-busca')">Pesquisar <span>→</span></button>
       </div>
     </main>
   </div>
@@ -154,25 +108,19 @@
   <!-- ========== TELA 2: BUSCA ========== -->
   <div id="tela-busca" class="screen hidden">
     <div class="bg-grid"></div>
-
     <header class="header">
       <div class="header-inner">
         <button class="btn-back" onclick="mostrarTela('tela-home')">← Início</button>
-        <div class="logo">
-          <div class="logo-mark">SR</div>
-          <span class="logo-text">SentimentRadar</span>
-        </div>
-        <span class="pill">Reddit · Tempo real</span>
+        <div class="logo"><div class="logo-mark">SR</div><span class="logo-text">SentimentRadar</span></div>
+        <span class="pill">Reddit · Bluesky · Web</span>
       </div>
     </header>
-
     <main class="search-main">
       <div class="hero-text">
         <div class="eyebrow">✦ Análise de sentimentos</div>
         <h1>O que o mundo<br><em>sente</em> sobre isso?</h1>
-        <p class="hero-sub">Capture e analise o pulso emocional de qualquer tema no Reddit com gráficos, tendências e dados reais.</p>
+        <p class="hero-sub">Analisamos publicações do Reddit, Bluesky e Web em tempo real.</p>
       </div>
-
       <div class="search-panel">
         <div class="search-row">
           <div class="input-wrap main-input">
@@ -185,38 +133,17 @@
             <input type="text" id="searchInput2" placeholder="ex: Nike" autocomplete="off">
           </div>
         </div>
-
         <div class="hint-bar">
           <span class="hint-dot"></span>
-          O refinamento exige que <strong>ambas</strong> as palavras apareçam no título ou descrição — nome de usuário ignorado.
+          O refinamento exige que <strong>ambas</strong> as palavras apareçam — aplica-se ao Reddit.
         </div>
-
         <div class="filters-bar">
-          <div class="filter-item">
-            <label>De</label>
-            <div class="date-input-wrap">
-              <span class="date-icon">📅</span>
-              <input type="date" id="dataInicio">
-            </div>
-          </div>
-          <div class="filter-item">
-            <label>Até</label>
-            <div class="date-input-wrap">
-              <span class="date-icon">📅</span>
-              <input type="date" id="dataFim">
-            </div>
-          </div>
-          <div class="filter-item">
-            <label>Ordenar</label>
-            <select id="filtro">
-              <option value="recentes">Mais recentes</option>
-              <option value="comentarios">Mais comentados</option>
-            </select>
-          </div>
+          <div class="filter-item"><label>De</label><div class="date-input-wrap"><span class="date-icon">📅</span><input type="date" id="dataInicio"></div></div>
+          <div class="filter-item"><label>Até</label><div class="date-input-wrap"><span class="date-icon">📅</span><input type="date" id="dataFim"></div></div>
+          <div class="filter-item"><label>Ordenar</label><select id="filtro"><option value="recentes">Mais recentes</option><option value="comentarios">Mais comentados</option></select></div>
           <button class="btn-search" onclick="buscar()">Analisar <span>→</span></button>
         </div>
       </div>
-
       <div class="features-row">
         <div class="feat"><span>📊</span>Gráficos interativos</div>
         <div class="feat"><span>🌡️</span>Termômetro emocional</div>
@@ -230,30 +157,26 @@
   <div id="tela-loading" class="screen hidden">
     <div class="loading-scene">
       <div class="radar-anim">
-        <div class="ring r1"></div>
-        <div class="ring r2"></div>
-        <div class="ring r3"></div>
+        <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
         <div class="radar-core">SR</div>
       </div>
       <p class="loading-label">Coletando e analisando publicações…</p>
-      <p class="loading-sub">Consultando o Reddit com múltiplos filtros.<br>Isso pode levar alguns segundos.</p>
+      <p class="loading-sub">Consultando Reddit, Bluesky e Web em paralelo.<br>Isso pode levar alguns segundos.</p>
+      <div class="loading-fontes" id="loading-fontes">
+        <span>⏳ Reddit</span><span>⏳ Bluesky</span><span>⏳ Web/Blogs</span>
+      </div>
     </div>
   </div>
 
   <!-- ========== TELA 4: RESULTADOS ========== -->
   <div id="tela-resultados" class="screen hidden">
-
     <header class="header">
       <div class="header-inner">
         <button class="btn-back" onclick="voltarBusca()">← Voltar</button>
-        <div class="logo">
-          <div class="logo-mark">SR</div>
-          <span class="logo-text">SentimentRadar</span>
-        </div>
+        <div class="logo"><div class="logo-mark">SR</div><span class="logo-text">SentimentRadar</span></div>
         <button class="btn-export" onclick="exportarCSV()">↓ Exportar CSV</button>
       </div>
     </header>
-
     <main class="results-main">
 
       <!-- HERO -->
@@ -266,9 +189,15 @@
         <div class="results-hero-right" id="hero-verdict"></div>
       </div>
 
-      <!-- DESTAQUE: CARDS DE SENTIMENTO -->
+      <!-- CARDS DE SENTIMENTO -->
       <section class="section">
         <div class="sentiment-highlight-row" id="sentiment-highlight-row"></div>
+      </section>
+
+      <!-- RESUMO POR FONTE -->
+      <section class="section">
+        <h2 class="section-title"><span>📡</span> Resumo por Rede Social</h2>
+        <div id="resumo-fontes" class="resumo-fontes-wrap"></div>
       </section>
 
       <!-- TERMÔMETRO -->
@@ -281,32 +210,20 @@
             <div class="thermo-index-label">Índice de Sentimento</div>
           </div>
           <div class="thermo-right">
-            <div class="thermo-scale-labels">
-              <span>Muito negativo</span>
-              <span>Neutro</span>
-              <span>Muito positivo</span>
-            </div>
-            <div class="thermo-track">
-              <div class="thermo-fill" id="thermo-fill"></div>
-              <div class="thermo-needle" id="thermo-needle"></div>
-            </div>
-            <div class="thermo-ticks">
-              <span>-100</span><span>-50</span><span>0</span><span>+50</span><span>+100</span>
-            </div>
+            <div class="thermo-scale-labels"><span>Muito negativo</span><span>Neutro</span><span>Muito positivo</span></div>
+            <div class="thermo-track"><div class="thermo-fill" id="thermo-fill"></div><div class="thermo-needle" id="thermo-needle"></div></div>
+            <div class="thermo-ticks"><span>-100</span><span>-50</span><span>0</span><span>+50</span><span>+100</span></div>
           </div>
         </div>
       </section>
 
-      <!-- GRÁFICOS PRINCIPAIS -->
+      <!-- GRÁFICOS -->
       <section class="section">
         <h2 class="section-title"><span>📊</span> Distribuição de Sentimentos</h2>
         <div class="charts-grid">
           <div class="chart-card">
             <div class="chart-top-label">Proporção geral</div>
-            <div class="donut-wrap">
-              <canvas id="chartDonut"></canvas>
-              <div class="donut-center" id="donut-center"></div>
-            </div>
+            <div class="donut-wrap"><canvas id="chartDonut"></canvas><div class="donut-center" id="donut-center"></div></div>
             <div class="donut-legend" id="donut-legend"></div>
           </div>
           <div class="chart-card">
@@ -325,41 +242,23 @@
         </div>
       </section>
 
-      <!-- RADAR DE INTENSIDADE -->
+      <!-- INTENSIDADE -->
       <section class="section">
         <h2 class="section-title"><span>🎯</span> Intensidade por Categoria</h2>
         <div class="charts-grid charts-grid-3">
           <div class="chart-card intensity-card pos-card">
-            <div class="intensity-icon">😊</div>
-            <div class="intensity-label">Positivos</div>
-            <div class="intensity-bar-wrap">
-              <div class="intensity-bar-bg">
-                <div class="intensity-bar-fill pos" id="bar-pos"></div>
-              </div>
-              <div class="intensity-pct" id="pct-pos">0%</div>
-            </div>
+            <div class="intensity-icon">😊</div><div class="intensity-label">Positivos</div>
+            <div class="intensity-bar-wrap"><div class="intensity-bar-bg"><div class="intensity-bar-fill pos" id="bar-pos"></div></div><div class="intensity-pct" id="pct-pos">0%</div></div>
             <div class="intensity-sub" id="sub-pos">0 publicações</div>
           </div>
           <div class="chart-card intensity-card neu-card">
-            <div class="intensity-icon">😐</div>
-            <div class="intensity-label">Neutros</div>
-            <div class="intensity-bar-wrap">
-              <div class="intensity-bar-bg">
-                <div class="intensity-bar-fill neu" id="bar-neu"></div>
-              </div>
-              <div class="intensity-pct" id="pct-neu">0%</div>
-            </div>
+            <div class="intensity-icon">😐</div><div class="intensity-label">Neutros</div>
+            <div class="intensity-bar-wrap"><div class="intensity-bar-bg"><div class="intensity-bar-fill neu" id="bar-neu"></div></div><div class="intensity-pct" id="pct-neu">0%</div></div>
             <div class="intensity-sub" id="sub-neu">0 publicações</div>
           </div>
           <div class="chart-card intensity-card neg-card">
-            <div class="intensity-icon">😡</div>
-            <div class="intensity-label">Negativos</div>
-            <div class="intensity-bar-wrap">
-              <div class="intensity-bar-bg">
-                <div class="intensity-bar-fill neg" id="bar-neg"></div>
-              </div>
-              <div class="intensity-pct" id="pct-neg">0%</div>
-            </div>
+            <div class="intensity-icon">😡</div><div class="intensity-label">Negativos</div>
+            <div class="intensity-bar-wrap"><div class="intensity-bar-bg"><div class="intensity-bar-fill neg" id="bar-neg"></div></div><div class="intensity-pct" id="pct-neg">0%</div></div>
             <div class="intensity-sub" id="sub-neg">0 publicações</div>
           </div>
         </div>
@@ -374,34 +273,28 @@
       <!-- WORDCLOUD -->
       <section class="section">
         <h2 class="section-title"><span>☁️</span> Palavras Mais Frequentes</h2>
-        <div class="chart-card wordcloud-card">
-          <div id="wordcloud"></div>
-        </div>
+        <div class="chart-card wordcloud-card"><div id="wordcloud"></div></div>
       </section>
 
-      <!-- RANKING DE PERFIS -->
+      <!-- RANKING PERFIS -->
       <section class="section">
         <h2 class="section-title"><span>🏆</span> Top 10 Perfis que Mais Publicaram</h2>
         <div class="chart-card ranking-card">
-          <div class="ranking-header">
-            <span class="ranking-desc">Perfis com maior volume de publicações sobre o tema. Exibe sentimento predominante, total de posts e engajamento.</span>
-          </div>
+          <div class="ranking-header"><span class="ranking-desc">Perfis com maior volume de publicações. Sentimento predominante, total de posts e engajamento.</span></div>
           <div id="ranking-perfis"></div>
         </div>
       </section>
 
-      <!-- BOARD DE EMOÇÕES -->
+      <!-- EMOÇÕES -->
       <section class="section">
         <h2 class="section-title"><span>🎭</span> Ranking de Emoções Relatadas</h2>
         <div class="chart-card emocoes-card">
-          <div class="ranking-header">
-            <span class="ranking-desc">Análise emocional baseada no modelo de Plutchik — detecta as 8 emoções primárias nos textos das publicações.</span>
-          </div>
+          <div class="ranking-header"><span class="ranking-desc">Análise emocional baseada no modelo de Plutchik — detecta as 8 emoções primárias.</span></div>
           <div id="emocoes-board"></div>
         </div>
       </section>
 
-      <!-- PUBLICAÇÕES - COLAPSÁVEIS -->
+      <!-- PUBLICAÇÕES -->
       <section class="section">
         <div class="posts-section-header">
           <h2 class="section-title"><span>📝</span> Publicações Analisadas</h2>
@@ -417,10 +310,132 @@
       </section>
 
     </main>
+    <footer class="footer"><p>Reddit · Bluesky · Web/Blogs · Análise léxica de sentimentos · SentimentRadar</p></footer>
+  </div>
 
-    <footer class="footer">
-      <p>Dados via API pública do Reddit · Análise léxica de sentimentos · SentimentRadar</p>
-    </footer>
+  <!-- ========== TELA 5: DETALHAMENTO POR FONTE ========== -->
+  <div id="tela-detalhe-fonte" class="screen hidden">
+    <header class="header">
+      <div class="header-inner">
+        <button class="btn-back" onclick="fecharDetalheFonte()">← Resultados gerais</button>
+        <div class="logo"><div class="logo-mark">SR</div><span class="logo-text">SentimentRadar</span></div>
+        <button class="btn-export" onclick="exportarCSV()">↓ Exportar CSV</button>
+      </div>
+    </header>
+    <main class="results-main">
+
+      <!-- HERO do detalhe -->
+      <div class="results-hero">
+        <div class="results-hero-left">
+          <div class="results-eyebrow">Detalhamento por fonte</div>
+          <div class="results-term" id="detalhe-fonte-titulo"></div>
+          <div class="results-count" id="detalhe-fonte-count"></div>
+        </div>
+      </div>
+
+      <!-- Stats específicas da fonte -->
+      <section class="section">
+        <div id="detalhe-fonte-stats"></div>
+      </section>
+
+      <!-- Highlight cards -->
+      <section class="section">
+        <div class="sentiment-highlight-row" id="detalhe-fonte-highlights"></div>
+      </section>
+
+      <!-- Termômetro -->
+      <section class="section">
+        <h2 class="section-title"><span>🌡️</span> Temperatura Emocional</h2>
+        <div class="thermo-card">
+          <div class="thermo-left">
+            <div class="thermo-number" id="d-thermo-value">0</div>
+            <div class="thermo-desc" id="d-thermo-desc">Neutro</div>
+            <div class="thermo-index-label">Índice de Sentimento</div>
+          </div>
+          <div class="thermo-right">
+            <div class="thermo-scale-labels"><span>Muito negativo</span><span>Neutro</span><span>Muito positivo</span></div>
+            <div class="thermo-track"><div class="thermo-fill"></div><div class="thermo-needle" id="d-thermo-needle"></div></div>
+            <div class="thermo-ticks"><span>-100</span><span>-50</span><span>0</span><span>+50</span><span>+100</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gráficos -->
+      <section class="section">
+        <h2 class="section-title"><span>📊</span> Distribuição de Sentimentos</h2>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-top-label">Proporção</div>
+            <div class="donut-wrap"><canvas id="d-chartDonut"></canvas><div class="donut-center" id="d-donut-center"></div></div>
+            <div class="donut-legend" id="d-donut-legend"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-top-label">Contagem</div>
+            <canvas id="d-chartBar"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Linha do tempo -->
+      <section class="section">
+        <h2 class="section-title"><span>📈</span> Evolução ao Longo do Tempo</h2>
+        <div class="chart-card chart-wide">
+          <div class="chart-top-label">Sentimentos por dia</div>
+          <canvas id="d-chartLine" height="100"></canvas>
+        </div>
+      </section>
+
+      <!-- Intensidade -->
+      <section class="section">
+        <h2 class="section-title"><span>🎯</span> Intensidade por Categoria</h2>
+        <div class="charts-grid charts-grid-3">
+          <div class="chart-card intensity-card pos-card">
+            <div class="intensity-icon">😊</div><div class="intensity-label">Positivos</div>
+            <div class="intensity-bar-wrap"><div class="intensity-bar-bg"><div class="intensity-bar-fill pos" id="d-bar-pos"></div></div><div class="intensity-pct" id="d-pct-pos">0%</div></div>
+            <div class="intensity-sub" id="d-sub-pos">0 publicações</div>
+          </div>
+          <div class="chart-card intensity-card neu-card">
+            <div class="intensity-icon">😐</div><div class="intensity-label">Neutros</div>
+            <div class="intensity-bar-wrap"><div class="intensity-bar-bg"><div class="intensity-bar-fill neu" id="d-bar-neu"></div></div><div class="intensity-pct" id="d-pct-neu">0%</div></div>
+            <div class="intensity-sub" id="d-sub-neu">0 publicações</div>
+          </div>
+          <div class="chart-card intensity-card neg-card">
+            <div class="intensity-icon">😡</div><div class="intensity-label">Negativos</div>
+            <div class="intensity-bar-wrap"><div class="intensity-bar-bg"><div class="intensity-bar-fill neg" id="d-bar-neg"></div></div><div class="intensity-pct" id="d-pct-neg">0%</div></div>
+            <div class="intensity-sub" id="d-sub-neg">0 publicações</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Métricas -->
+      <section class="section">
+        <h2 class="section-title"><span>🔎</span> Métricas Detalhadas</h2>
+        <div class="metrics-grid" id="d-metrics-grid"></div>
+      </section>
+
+      <!-- Wordcloud -->
+      <section class="section">
+        <h2 class="section-title"><span>☁️</span> Palavras Mais Frequentes</h2>
+        <div class="chart-card wordcloud-card"><div id="d-wordcloud"></div></div>
+      </section>
+
+      <!-- Emoções -->
+      <section class="section">
+        <h2 class="section-title"><span>🎭</span> Ranking de Emoções Relatadas</h2>
+        <div class="chart-card emocoes-card">
+          <div class="ranking-header"><span class="ranking-desc">Análise emocional baseada no modelo de Plutchik — emoções detectadas nesta fonte.</span></div>
+          <div id="d-emocoes-board"></div>
+        </div>
+      </section>
+
+      <!-- Posts -->
+      <section class="section">
+        <h2 class="section-title"><span>📝</span> Publicações desta Fonte</h2>
+        <div class="posts-list" id="d-posts-list"></div>
+      </section>
+
+    </main>
+    <footer class="footer"><p>Reddit · Bluesky · Web/Blogs · Análise léxica de sentimentos · SentimentRadar</p></footer>
   </div>
 
   <script src="script.js"></script>
