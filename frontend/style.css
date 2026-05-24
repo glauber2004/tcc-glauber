@@ -735,16 +735,40 @@ select option { background:var(--ink2); color:var(--txt); }
 }
 .metric-sub { font-size:.75rem; color:var(--txt2); }
 
-.wordcloud-card { min-height:200px; display:flex; align-items:center; justify-content:center; }
-#wordcloud {
-  display:flex; flex-wrap:wrap; gap:10px 14px;
-  align-items:center; justify-content:center; padding:10px;
+.wordcloud-card {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+/* Aplica tanto em #wordcloud quanto em #d-wordcloud */
+#wordcloud,
+#d-wordcloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .wc-word {
-  font-weight:600; border-radius:6px; padding:4px 10px;
-  transition:.2s; cursor:default; line-height:1;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 4px 10px;
+  transition: .2s;
+  cursor: default;
+  line-height: 1;
+  /* impede palavras longas de estourar o container */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
-.wc-word:hover { transform:scale(1.08); }
+.wc-word:hover { transform: scale(1.08); }
 
 .posts-section-header {
   display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;

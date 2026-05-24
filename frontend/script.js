@@ -153,7 +153,7 @@ async function buscarBluesky(query, limite = 75) {
     if (cursor) params.set('cursor', cursor);
 
     const resp = await fetch(
-      `https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?${params}`,
+      `http://localhost:3000/bluesky?${params.toString()}`,
       { headers: { 'Accept': 'application/json' } }
     );
 
@@ -163,29 +163,27 @@ async function buscarBluesky(query, limite = 75) {
     if (!feed.length) break;
 
     feed.forEach(p => {
-      const texto = p.record?.text || '';
-      const tl    = texto.toLowerCase();
-      const anal  = analisarSentimento(tl);
-      const autor = p.author?.handle || 'desconhecido';
-      const did   = p.author?.did    || '';
-      const rkey  = p.uri?.split('/').pop() || '';
+  const texto = p.text || '';
+  const tl    = texto.toLowerCase();
+  const anal  = analisarSentimento(tl);
+  const autor = p.author || 'desconhecido';
 
-      posts.push({
-        fonte:         'bluesky',
-        texto:         texto.slice(0, 200),
-        descricao:     '',
-        textoCompleto: tl,
-        dataPost:      new Date(p.record?.createdAt || Date.now()),
-        link:          `https://bsky.app/profile/${autor}/post/${rkey}`,
-        comentarios:   p.replyCount  || 0,
-        autor,
-        upvotes:       p.likeCount   || 0,
-        reposts:       p.repostCount || 0,
-        subreddit:     '',
-        sentimento:    anal.sentimento,
-        score:         anal.score,
-      });
-    });
+  posts.push({
+    fonte: 'bluesky',
+    texto: texto.slice(0, 200),
+    descricao: '',
+    textoCompleto: tl,
+    dataPost: new Date(), // backend não manda data
+    link: p.url || '#',
+    comentarios: p.replies || 0,
+    autor,
+    upvotes: p.likes || 0,
+    reposts: p.reposts || 0,
+    subreddit: '',
+    sentimento: anal.sentimento,
+    score: anal.score,
+  });
+});
 
     cursor = data.cursor;
     if (!cursor) break;
