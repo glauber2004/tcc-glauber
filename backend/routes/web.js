@@ -109,6 +109,10 @@ router.get("/web", async (req, res) => {
   const query = req.query.q;
   if (!query) return res.json({ totalPosts: 0, posts: [] });
 
+  // Datas opcionais vindas do frontend (YYYY-MM-DD)
+  const inicio = req.query.inicio ? new Date(req.query.inicio + "T00:00:00Z") : null;
+  const fim    = req.query.fim    ? new Date(req.query.fim    + "T23:59:59Z") : null;
+
   let posts = [];
 
   try { posts = await buscarGoogleRSS(query); } catch(e) {
@@ -125,7 +129,15 @@ router.get("/web", async (req, res) => {
   }
 
   // Remove duplicatas por título
-  const unicos = [...new Map(posts.map(p => [p.texto, p])).values()];
+  let unicos = [...new Map(posts.map(p => [p.texto, p])).values()];
+
+  // Filtro por data (se datas foram informadas)
+  if (inicio && fim) {
+    unicos = unicos.filter(p => {
+      const d = new Date(p.dataPost);
+      return d >= inicio && d <= fim;
+    });
+  }
 
   res.json({
     totalPosts:       unicos.length,

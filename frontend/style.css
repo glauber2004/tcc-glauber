@@ -130,7 +130,18 @@ body {
 .header-inner {
   max-width: 1100px; margin:0 auto;
   padding: 13px 40px;
-  display: flex; align-items: center; justify-content: space-between; gap:16px;
+  display: flex; align-items: center; gap:16px;
+  position: relative;
+}
+/* Lado esquerdo e direito ficam nas pontas; logo fica absolutamente centrado */
+.header-inner .btn-back  { flex: 0 0 auto; }
+.header-inner .pill      { margin-left: auto; }
+.header-inner .export-group { flex: 0 0 auto; margin-left: auto; }
+.header-inner .logo {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
 }
 .logo { display:flex; align-items:center; gap:10px; }
 .logo-mark {
@@ -160,6 +171,12 @@ body {
   padding:7px 16px; border-radius:var(--r-sm); cursor:pointer; transition:.2s;
 }
 .btn-export:hover { background:rgba(96,165,250,.22); }
+.btn-pdf {
+  background: rgba(239,68,68,.10); border-color:rgba(239,68,68,.25);
+  color:#f87171;
+}
+.btn-pdf:hover { background:rgba(239,68,68,.20); }
+.export-group { display:flex; gap:8px; align-items:center; }
 
 /* =========================
    TELA 0: BEM-VINDO

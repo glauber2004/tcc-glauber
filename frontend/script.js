@@ -143,14 +143,20 @@ async function buscarReddit(termo, extra, inicio, fim, filtro) {
   return (d.posts || []).map(p => ({ ...p, fonte: 'reddit' }));
 }
 
-/* ── Fonte: Bluesky (browser — sem passar pelo servidor) ── */
-async function buscarBluesky(query, limite = 75) {
-  const posts = [];
-  let cursor  = undefined;
+/* ── Fonte: Bluesky (via servidor) ── */
+async function buscarBluesky(query, limite = 200) {
+  const inicio = document.getElementById("dataInicio").value;
+  const fim    = document.getElementById("dataFim").value;
 
-  for (let page = 0; page < 3 && posts.length < limite; page++) {
-    const params = new URLSearchParams({ q: query, limit: 25 });
-    if (cursor) params.set('cursor', cursor);
+  const posts  = [];
+  let cursor   = undefined;
+
+  // Até 8 páginas de 25 = 200 posts máximo
+  for (let page = 0; page < 8 && posts.length < limite; page++) {
+    const params = new URLSearchParams({ q: query, limit: 100 });
+    if (cursor)  params.set('cursor', cursor);
+    if (inicio)  params.set('since',  inicio);
+    if (fim)     params.set('until',  fim);
 
     const resp = await fetch(
       `http://localhost:3000/bluesky?${params.toString()}`,
@@ -163,31 +169,34 @@ async function buscarBluesky(query, limite = 75) {
     if (!feed.length) break;
 
     feed.forEach(p => {
-  const texto = p.text || '';
-  const tl    = texto.toLowerCase();
-  const anal  = analisarSentimento(tl);
-  const autor = p.author || 'desconhecido';
+      const texto = p.text || '';
+      const tl    = texto.toLowerCase();
+      const anal  = analisarSentimento(tl);
+      const autor = p.author || 'desconhecido';
 
-  posts.push({
-    fonte: 'bluesky',
-    texto: texto.slice(0, 200),
-    descricao: '',
-    textoCompleto: tl,
-    dataPost: new Date(), // backend não manda data
-    link: p.url || '#',
-    comentarios: p.replies || 0,
-    autor,
-    upvotes: p.likes || 0,
-    reposts: p.reposts || 0,
-    subreddit: '',
-    sentimento: anal.sentimento,
-    score: anal.score,
-  });
-});
+      // Usa a data real do post; fallback para agora
+      const dataPost = p.createdAt ? new Date(p.createdAt) : new Date();
+
+      posts.push({
+        fonte: 'bluesky',
+        texto: texto.slice(0, 200),
+        descricao: '',
+        textoCompleto: tl,
+        dataPost,
+        link: p.url || '#',
+        comentarios: p.replies || 0,
+        autor,
+        upvotes: p.likes || 0,
+        reposts: p.reposts || 0,
+        subreddit: '',
+        sentimento: anal.sentimento,
+        score: anal.score,
+      });
+    });
 
     cursor = data.cursor;
     if (!cursor) break;
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 300));
   }
 
   return posts;
@@ -195,7 +204,12 @@ async function buscarBluesky(query, limite = 75) {
 
 /* ── Fonte: Web/RSS (backend) ── */
 async function buscarWeb(termo) {
-  const url = `http://localhost:3000/api/web?q=${encodeURIComponent(termo)}`;
+  const inicio = document.getElementById("dataInicio").value;
+  const fim    = document.getElementById("dataFim").value;
+  const params = new URLSearchParams({ q: termo });
+  if (inicio) params.set('inicio', inicio);
+  if (fim)    params.set('fim',    fim);
+  const url = `http://localhost:3000/api/web?${params.toString()}`;
   const r = await fetch(url);
   const d = await r.json();
   return (d.posts || []).map(p => ({ ...p, fonte: 'web' }));
@@ -837,6 +851,117 @@ function escapar(txt) {
   if(!txt) return '';
   return txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+/* ============================================================
+   EXPORTAR PDF — captura os gráficos da tela atual
+============================================================ */
+async function exportarPDF() {
+  // Verifica se as libs estão disponíveis
+  if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+    alert('Aguarde as bibliotecas de PDF carregarem e tente novamente.');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+
+  // Detecta se estamos na tela geral ou na tela de detalhe por fonte
+  const telaDetalhe = !document.getElementById('tela-detalhe-fonte').classList.contains('hidden');
+  const tela        = telaDetalhe
+    ? document.getElementById('tela-detalhe-fonte')
+    : document.getElementById('tela-resultados');
+
+  const titulo      = telaDetalhe
+    ? (document.getElementById('detalhe-fonte-titulo')?.textContent || 'Detalhamento por Fonte')
+    : 'SentimentRadar — Relatório Geral';
+
+  const termo       = document.getElementById('results-term')?.textContent || '';
+  const dataGeracao = new Date().toLocaleString('pt-BR');
+
+  // Botões e paginação ficam ocultos no PDF
+  const hideSelectors = ['.btn-back', '.btn-export', '.posts-pagination', '.filter-bar'];
+  const hiddenEls = [];
+  hideSelectors.forEach(sel => {
+    tela.querySelectorAll(sel).forEach(el => {
+      hiddenEls.push({ el, display: el.style.display });
+      el.style.display = 'none';
+    });
+  });
+
+  try {
+    const canvas = await html2canvas(tela, {
+      scale: 1.5,
+      useCORS: true,
+      logging: false,
+      backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark'
+        ? '#0d1526'
+        : '#f1f5f9'
+    });
+
+    const imgData  = canvas.toDataURL('image/jpeg', 0.92);
+    const pdf      = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pdfW     = pdf.internal.pageSize.getWidth();
+    const pdfH     = pdf.internal.pageSize.getHeight();
+    const margin   = 10;
+    const usableW  = pdfW - margin * 2;
+    const imgH     = (canvas.height * usableW) / canvas.width;
+
+    // Cabeçalho
+    pdf.setFillColor(13, 21, 38);
+    pdf.rect(0, 0, pdfW, 18, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(titulo, margin, 11);
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`Gerado em ${dataGeracao}  |  ${termo}`, pdfW - margin, 11, { align: 'right' });
+
+    // Imagem paginada
+    let yOffset = 0;
+    const startY = 20;
+    const pageImgH = pdfH - startY - margin;
+
+    while (yOffset < imgH) {
+      if (yOffset > 0) {
+        pdf.addPage();
+        pdf.setFillColor(13, 21, 38);
+        pdf.rect(0, 0, pdfW, 14, 'F');
+        pdf.setTextColor(200, 200, 200);
+        pdf.setFontSize(8);
+        pdf.text(titulo, margin, 9);
+      }
+
+      const sliceH    = Math.min(pageImgH, imgH - yOffset);
+      const srcY      = yOffset * (canvas.height / imgH);
+      const srcH      = sliceH * (canvas.height / imgH);
+
+      // Recorta a fatia da imagem
+      const tmpCanvas = document.createElement('canvas');
+      tmpCanvas.width  = canvas.width;
+      tmpCanvas.height = srcH;
+      const ctx = tmpCanvas.getContext('2d');
+      ctx.drawImage(canvas, 0, -srcY);
+      const sliceData = tmpCanvas.toDataURL('image/jpeg', 0.92);
+
+      pdf.addImage(sliceData, 'JPEG', margin, yOffset > 0 ? 16 : startY, usableW, sliceH);
+      yOffset += pageImgH;
+    }
+
+    // Rodapé na última página
+    pdf.setFontSize(7);
+    pdf.setTextColor(120, 120, 120);
+    pdf.text('SentimentRadar — Análise léxica de sentimentos — Reddit · Bluesky · Web', pdfW / 2, pdfH - 4, { align: 'center' });
+
+    const nomeArquivo = telaDetalhe
+      ? `sentimentradar-${document.getElementById('detalhe-fonte-titulo')?.textContent?.replace(/[^a-z0-9]/gi, '-').toLowerCase() || 'detalhe'}.pdf`
+      : 'sentimentradar-relatorio-geral.pdf';
+
+    pdf.save(nomeArquivo);
+
+  } finally {
+    // Restaura visibilidade dos elementos
+    hiddenEls.forEach(({ el, display }) => { el.style.display = display; });
+  }
+}
+
 function exportarCSV() {
   if(!todosOsPosts.length) return;
   const header=['Fonte','Titulo','Sentimento','Score','Comentários','Data','Link'];

@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -174,12 +176,13 @@
       <div class="header-inner">
         <button class="btn-back" onclick="voltarBusca()">← Voltar</button>
         <div class="logo"><div class="logo-mark">SR</div><span class="logo-text">SentimentRadar</span></div>
-        <button class="btn-export" onclick="exportarCSV()">↓ Exportar CSV</button>
+        <div class="export-group">
+          <button class="btn-export" onclick="exportarCSV()">↓ CSV</button>
+          <button class="btn-export btn-pdf" onclick="exportarPDF()">↓ PDF</button>
+        </div>
       </div>
     </header>
     <main class="results-main">
-
-      <!-- HERO -->
       <div class="results-hero">
         <div class="results-hero-left">
           <div class="results-eyebrow">Relatório de análise</div>
@@ -319,7 +322,10 @@
       <div class="header-inner">
         <button class="btn-back" onclick="fecharDetalheFonte()">← Resultados gerais</button>
         <div class="logo"><div class="logo-mark">SR</div><span class="logo-text">SentimentRadar</span></div>
-        <button class="btn-export" onclick="exportarCSV()">↓ Exportar CSV</button>
+        <div class="export-group">
+          <button class="btn-export" onclick="exportarCSV()">↓ CSV</button>
+          <button class="btn-export btn-pdf" onclick="exportarPDF()">↓ PDF</button>
+        </div>
       </div>
     </header>
     <main class="results-main">
