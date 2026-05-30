@@ -4,33 +4,79 @@ const { analisarSentimento } = require("../services/sentiment");
 
 const router = express.Router();
 
-// Aguarda ms milissegundos entre requisições para evitar bloqueio do Reddit
+const BASE_URL = "https://arctic-shift.photon-reddit.com";
+
 function esperar(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Busca todos os posts com paginação para um determinado sort
-async function buscarComPaginacao(query, sort, totalDesejado = 300) {
+// Normaliza texto removendo acentos (ex: "Grêmio" bate com "Gremio")
+const normalizar = str =>
+  str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+const SUBREDDITS = [
+  "soccer", "football", "brasileirao", "futebol",
+  "coxinha", "flamengo", "corinthians", "palmeiras",
+  "saopaulo", "libertadores"
+];
+
+async function buscarEmSubreddit(subreddit, query, limite = 500) {
   let posts = [];
-  let after = "";
+  let before = null;
+  let pagina = 1;
 
-  while (posts.length < totalDesejado) {
-    const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=100&sort=${sort}&after=${after}`;
-    const response = await axios.get(url, {
-      headers: { "User-Agent": "MonitoramentoApp/1.0" }
-    });
+  while (posts.length < limite) {
+    try {
+      const params = {
+        subreddit,
+        title: query,
+        limit: 100,
+        sort: "desc",
+      };
 
-    const data = response.data.data;
-    const novos = data.children;
+      if (before) params.before = String(before);
 
-    if (!novos || novos.length === 0) break;
+      const response = await axios.get(`${BASE_URL}/api/posts/search`, {
+        params,
+        timeout: 20000,
+        headers: {
+          "User-Agent": "TCC-MonitoramentoApp/1.0",
+          "Accept": "application/json",
+        }
+      });
 
-    posts = posts.concat(novos);
-    after = data.after;
+      const rateLimit = response.headers["x-ratelimit-remaining"];
+      if (rateLimit) console.log(`[r/${subreddit}] página ${pagina} | Rate limit restante: ${rateLimit}`);
 
-    if (!after) break;
+      const novos = response.data?.data;
 
-    await esperar(1000); // delay de 1s entre páginas
+      if (!novos || novos.length === 0) {
+        console.log(`[r/${subreddit}] sem mais posts na página ${pagina}`);
+        break;
+      }
+
+      posts = posts.concat(novos);
+      console.log(`[r/${subreddit}] página ${pagina}: ${novos.length} posts (total: ${posts.length})`);
+
+      if (novos.length < 100) break;
+
+      const ultimo = novos[novos.length - 1];
+      before = ultimo?.created_utc ?? null;
+      if (!before) break;
+
+      pagina++;
+      await esperar(500);
+
+    } catch (err) {
+      if (err.response?.status === 429) {
+        const retryAfter = err.response.headers["retry-after"] || 10;
+        console.warn(`Rate limit em r/${subreddit}. Aguardando ${retryAfter}s...`);
+        await esperar(retryAfter * 1000);
+        continue;
+      }
+      console.warn(`Erro em r/${subreddit} página ${pagina}: ${err.message}`);
+      break;
+    }
   }
 
   return posts;
@@ -38,74 +84,65 @@ async function buscarComPaginacao(query, sort, totalDesejado = 300) {
 
 router.get("/buscar", async (req, res) => {
   const query = req.query.q;
-  const inicio = new Date(req.query.inicio);
-  const fim = new Date(req.query.fim);
+  const inicio = req.query.inicio ? new Date(req.query.inicio) : null;
+  const fim = req.query.fim ? new Date(req.query.fim) : null;
   const filtro = req.query.filtro;
+  const palavra2 = req.query.extra?.toLowerCase() || "";
+
+  if (!query) {
+    return res.status(400).json({ erro: "Parâmetro 'q' é obrigatório" });
+  }
 
   try {
-    // Busca com 4 ordenações diferentes para maximizar resultados
-    const sorts = ["new", "hot", "top", "relevance"];
-    let todosPosts = [];
+    console.log(`\n=== Iniciando busca: "${query}" ===`);
 
-    for (const sort of sorts) {
-      const resultado = await buscarComPaginacao(query, sort, 300);
-      todosPosts = todosPosts.concat(resultado);
-      await esperar(1000); // delay entre cada tipo de sort
+    const resultados = await Promise.all(
+      SUBREDDITS.map(sub => buscarEmSubreddit(sub, query, 500))
+    );
+
+    const todosPosts = resultados.flat();
+    const unicos = [...new Map(todosPosts.map(p => [p.id, p])).values()];
+    console.log(`\nTotal bruto: ${todosPosts.length} | Únicos: ${unicos.length}`);
+
+    let posts = unicos.map(item => {
+      const titulo = item.title || "";
+      const descricao = item.selftext || "";
+      const textoCompleto = `${titulo} ${descricao}`;
+
+      const dataPost = new Date(item.created_utc * 1000);
+      const link = item.permalink
+        ? `https://www.reddit.com${item.permalink}`
+        : `https://www.reddit.com/r/${item.subreddit}/comments/${item.id}`;
+
+      const analise = analisarSentimento(textoCompleto.toLowerCase());
+
+      return {
+        texto: titulo,
+        descricao,
+        textoCompleto,
+        dataPost,
+        link,
+        comentarios: item.num_comments || 0,
+        autor: item.author || "[deletado]",
+        upvotes: item.score || 0,
+        subreddit: item.subreddit || "",
+        sentimento: analise.sentimento,
+        score: analise.score,
+      };
+    });
+
+    // A API já filtrou por título — aqui só filtra pela palavra extra se informada
+    if (palavra2) {
+      const palavra2Norm = normalizar(palavra2);
+      posts = posts.filter(post =>
+        normalizar(post.textoCompleto).includes(palavra2Norm)
+      );
     }
 
-    // Remove duplicatas pelo ID do post
-    const unicos = [...new Map(todosPosts.map(p => [p.data.id, p])).values()];
-
-    // Transforma os dados e analisa sentimento
-    let posts = unicos.map(item => {
-  const titulo = item.data.title || "";
-  const descricao = item.data.selftext || "";
-
-  const textoCompleto = `${titulo} ${descricao}`.toLowerCase();
-
-  const dataPost = new Date(item.data.created_utc * 1000);
-  const link = `https://www.reddit.com${item.data.permalink}`;
-  const comentarios = item.data.num_comments;
-
-  const analise = analisarSentimento(textoCompleto);
-  const autor = item.data.author || '[deletado]';
-  const upvotes = item.data.ups || 0;
-  const subreddit = item.data.subreddit || '';
-
-  return {
-    texto: titulo,
-    descricao,
-    textoCompleto,
-    dataPost,
-    link,
-    comentarios,
-    autor,
-    upvotes,
-    subreddit,
-    sentimento: analise.sentimento,
-    score: analise.score
-  };
-});
-
-
-const palavra1 = req.query.q?.toLowerCase() || "";
-const palavra2 = req.query.extra?.toLowerCase() || "";
-
-posts = posts.filter(post => {
-  const texto = post.textoCompleto;
-
-  const temPalavra1 = texto.includes(palavra1);
-  const temPalavra2 = palavra2 ? texto.includes(palavra2) : true;
-
-  return temPalavra1 && temPalavra2;
-});
-
-
     // Filtro por data
-    posts = posts.filter(post => {
-      if (!req.query.inicio || !req.query.fim) return true;
-      return post.dataPost >= inicio && post.dataPost <= fim;
-    });
+    if (inicio && fim) {
+      posts = posts.filter(post => post.dataPost >= inicio && post.dataPost <= fim);
+    }
 
     // Ordenação
     if (filtro === "comentarios") {
@@ -114,20 +151,17 @@ posts = posts.filter(post => {
       posts.sort((a, b) => b.dataPost - a.dataPost);
     }
 
-    // Métricas
     const totalPosts = posts.length;
     const totalComentarios = posts.reduce((acc, p) => acc + p.comentarios, 0);
     const mediaComentarios = totalPosts > 0 ? (totalComentarios / totalPosts).toFixed(2) : 0;
 
-    res.json({
-      totalPosts,
-      mediaComentarios,
-      posts
-    });
+    console.log(`Posts retornados após filtros: ${totalPosts}`);
+
+    res.json({ totalPosts, mediaComentarios, posts });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ erro: "Erro ao buscar dados" });
+    console.error("Erro geral:", error.message);
+    res.status(500).json({ erro: "Erro ao buscar dados. Tente novamente." });
   }
 });
 

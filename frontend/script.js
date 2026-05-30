@@ -7,7 +7,7 @@
 let chartDonut = null, chartBar = null, chartLine = null;
 let todosOsPosts = [], postsFiltrados = [];
 let paginaAtual = 1;
-const POSTS_POR_PAGINA = 10;
+const POSTS_POR_PAGINA = 20;
 
 // Dados separados por fonte
 let dadosFontes = { reddit: [], bluesky: [], web: [] };
@@ -557,7 +557,24 @@ function renderizarDetalheConteudo(posts, fonte) {
   // ─ Posts
   const dContainer = document.getElementById('d-posts-list');
   dContainer.innerHTML = '';
-  posts.slice(0, 50).forEach((p,i) => renderizarPostCard(p, i, dContainer));
+  // Paginação no detalhamento
+let dPaginaAtual = 1;
+const D_POSTS_POR_PAGINA = 20;
+const dInicio = (dPaginaAtual - 1) * D_POSTS_POR_PAGINA;
+posts.slice(dInicio, dInicio + D_POSTS_POR_PAGINA).forEach((p,i) => renderizarPostCard(p, i, dContainer));
+
+// Paginação simples no detalhamento
+const dTotalPags = Math.ceil(posts.length / D_POSTS_POR_PAGINA);
+if (dTotalPags > 1) {
+  const dPag = document.getElementById('d-posts-pagination');
+  if (dPag) {
+    let html = '';
+    for (let p = 1; p <= dTotalPags; p++) {
+      html += `<button class="page-btn ${p===dPaginaAtual?'active':''}" onclick="irParaPaginaDetalhe(${p})">${p}</button>`;
+    }
+    dPag.innerHTML = html;
+  }
+}
 }
 
 /* ── Termômetro genérico (reutilizável) ── */
@@ -837,6 +854,23 @@ function irParaPagina(p) {
   paginaAtual=p;
   renderizarPagina();
   document.querySelector('.posts-section-header')?.scrollIntoView({behavior:'smooth'});
+}
+
+
+function irParaPaginaDetalhe(p) {
+  const fonte = document.getElementById('detalhe-fonte-titulo')?.dataset?.fonte;
+  const posts = fonte ? dadosFontes[fonte] : [];
+  const total = Math.ceil(posts.length / 20);
+  if (p < 1 || p > total) return;
+  const dContainer = document.getElementById('d-posts-list');
+  dContainer.innerHTML = '';
+  const inicio = (p - 1) * 20;
+  posts.slice(inicio, inicio + 20).forEach((post, i) => renderizarPostCard(post, i, dContainer));
+  // Atualiza botões ativos
+  document.querySelectorAll('#d-posts-pagination .page-btn').forEach((btn, idx) => {
+    btn.classList.toggle('active', idx + 1 === p);
+  });
+  dContainer.scrollIntoView({ behavior: 'smooth' });
 }
 
 /* ── Utilitários ── */
