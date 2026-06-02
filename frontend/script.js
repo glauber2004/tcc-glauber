@@ -7,10 +7,10 @@
 let chartDonut = null, chartBar = null, chartLine = null;
 let todosOsPosts = [], postsFiltrados = [];
 let paginaAtual = 1;
-const POSTS_POR_PAGINA = 20;
+const POSTS_POR_PAGINA = 10;
 
 // Dados separados por fonte
-let dadosFontes = { reddit: [], bluesky: [], web: [] };
+let dadosFontes = { reddit: [], bluesky: [], web: [], youtube: [] };
 
 const POSITIVOS = ["bom","ótimo","excelente","incrível","maravilhoso","perfeito","gostei","amei","top","fantástico","feliz","sucesso","melhor","recomendo"];
 const NEGATIVOS = ["ruim","péssimo","horrível","terrível","odio","problema","crise","lixo","decepcionante","triste","fracasso","pior","não recomendo"];
@@ -90,33 +90,38 @@ async function buscar() {
   setLoadingStatus('loading','loading','loading');
 
   try {
-    // ── Dispara as 3 fontes em paralelo ──────────────────────────
-    const [redditResult, blueskyResult, webResult] = await Promise.allSettled([
+    // ── Dispara as 4 fontes em paralelo ──────────────────────────
+    const [redditResult, blueskyResult, webResult, youtubeResult] = await Promise.allSettled([
       buscarReddit(termo, extra, inicio, fim, filtro),
       buscarBluesky(termo),
       buscarWeb(termo),
+      buscarYoutube(termo),
     ]);
 
     const postsReddit  = redditResult.status  === 'fulfilled' ? redditResult.value  : [];
     const postsBluesky = blueskyResult.status === 'fulfilled' ? blueskyResult.value : [];
     const postsWeb     = webResult.status     === 'fulfilled' ? webResult.value     : [];
+    const postsYoutube = youtubeResult.status === 'fulfilled' ? youtubeResult.value : [];
 
     if (redditResult.status  === 'rejected') console.warn('[Reddit]',  redditResult.reason);
     if (blueskyResult.status === 'rejected') console.warn('[Bluesky]', blueskyResult.reason);
     if (webResult.status     === 'rejected') console.warn('[Web]',     webResult.reason);
+    if (youtubeResult.status === 'rejected') console.warn('[YouTube]', youtubeResult.reason);
 
     setLoadingStatus(
       redditResult.status  === 'fulfilled' ? 'ok' : 'err',
       blueskyResult.status === 'fulfilled' ? 'ok' : 'err',
       webResult.status     === 'fulfilled' ? 'ok' : 'err',
+      youtubeResult.status === 'fulfilled' ? 'ok' : 'err',
     );
 
     // Guarda por fonte
     dadosFontes.reddit  = postsReddit;
     dadosFontes.bluesky = postsBluesky;
     dadosFontes.web     = postsWeb;
+    dadosFontes.youtube = postsYoutube;
 
-    todosOsPosts = [...postsReddit, ...postsBluesky, ...postsWeb];
+    todosOsPosts = [...postsReddit, ...postsBluesky, ...postsWeb, ...postsYoutube];
 
     renderizarResultados(termo, extra);
     mostrarTela("tela-resultados");
@@ -128,11 +133,11 @@ async function buscar() {
   }
 }
 
-function setLoadingStatus(reddit, bluesky, web) {
+function setLoadingStatus(reddit, bluesky, web, youtube) {
   const el = document.getElementById('loading-fontes');
   if (!el) return;
   const ic = { loading:'⏳', ok:'✅', err:'⚠️' };
-  el.innerHTML = `<span>${ic[reddit]} Reddit</span><span>${ic[bluesky]} Bluesky</span><span>${ic[web]} Web/Blogs</span>`;
+  el.innerHTML = `<span>${ic[reddit]} Reddit</span><span>${ic[bluesky]} Bluesky</span><span>${ic[web]} Web/Blogs</span><span>${ic[youtube||'loading']} YouTube</span>`;
 }
 
 /* ── Fonte: Reddit (backend) ── */
@@ -213,6 +218,30 @@ async function buscarWeb(termo) {
   const r = await fetch(url);
   const d = await r.json();
   return (d.posts || []).map(p => ({ ...p, fonte: 'web' }));
+}
+
+
+/* ── Fonte: YouTube (via servidor) ── */
+async function buscarYoutube(termo) {
+  const inicio = document.getElementById("dataInicio").value;
+  const fim    = document.getElementById("dataFim").value;
+  const filtro = document.getElementById("filtro").value;
+
+  const params = new URLSearchParams({ q: termo });
+  if (inicio) params.set("inicio", inicio);
+  if (fim)    params.set("fim",    fim);
+  if (filtro) params.set("filtro", filtro);
+
+  const resp = await fetch(`http://localhost:3000/youtube/buscar?${params.toString()}`);
+  if (!resp.ok) throw new Error(`YouTube HTTP ${resp.status}`);
+
+  const data  = await resp.json();
+  const posts = data.posts || [];
+
+  return posts.map(p => {
+    const anal = analisarSentimento(p.textoCompleto || "");
+    return { ...p, sentimento: anal.sentimento, score: anal.score, fonte: "youtube" };
+  });
 }
 
 /* ── Análise de sentimento (replicada no front para Bluesky) ── */
@@ -303,6 +332,7 @@ function renderizarResumoFontes() {
     { key:'reddit',  icon:'🔴', nome:'Reddit',          cor:'#ff6314' },
     { key:'bluesky', icon:'🦋', nome:'Bluesky',         cor:'#3b9eff' },
     { key:'web',     icon:'🌐', nome:'Web / Notícias',  cor:'#818cf8' },
+    { key:'youtube', icon:'▶️', nome:'YouTube',         cor:'#ff0000' },
   ];
 
   el.innerHTML = config.map(({ key, icon, nome, cor }) => {
@@ -323,6 +353,10 @@ function renderizarResumoFontes() {
     } else if (key === 'bluesky') {
       const rep = posts.reduce((a,p) => a + (p.reposts||0), 0);
       statsHtml = `<span>📋 ${total} publicações</span><span>💬 ${cmt.toLocaleString('pt-BR')} replies</span><span>❤️ ${likes.toLocaleString('pt-BR')} likes</span><span>🔁 ${rep.toLocaleString('pt-BR')} reposts</span>`;
+    } else if (key === 'youtube') {
+      const videos = posts.filter(p => p.tipo === 'video').length;
+      const cmts   = posts.filter(p => p.tipo === 'comentario').length;
+      statsHtml = `<span>🎬 ${videos} vídeos</span><span>💬 ${cmts} comentários analisados</span><span>⬆️ ${likes.toLocaleString('pt-BR')} likes</span>`;
     } else {
       statsHtml = `<span>📋 ${total} artigos</span><span>📰 via RSS público</span>`;
     }
@@ -414,6 +448,20 @@ function renderizarDetalheConteudo(posts, fonte) {
         <div class="ds-stat"><span>💬</span><strong>${repl.toLocaleString('pt-BR')}</strong><small>replies</small></div>
         <div class="ds-stat"><span>🔁</span><strong>${rep.toLocaleString('pt-BR')}</strong><small>reposts</small></div>
       </div>`;
+  } else if (fonte === 'youtube') {
+    const videos = posts.filter(p => p.tipo === 'video').length;
+    const cmts   = posts.filter(p => p.tipo === 'comentario').length;
+    const likes  = posts.reduce((a,p) => a+(p.upvotes||0), 0);
+    const canais = [...new Set(posts.map(p=>p.canal).filter(Boolean))].slice(0,6);
+    const canaisHtml = canais.length ? '<div class="ds-subs">Canais: ' + canais.map(c=>'<span class="sub-tag">'+escapar(c)+'</span>').join('') + '</div>' : '';
+    statsHtml = `
+      <div class="ds-stat-row">
+        <div class="ds-stat"><span>🎬</span><strong>${videos}</strong><small>vídeos</small></div>
+        <div class="ds-stat"><span>💬</span><strong>${cmts}</strong><small>comentários</small></div>
+        <div class="ds-stat"><span>⬆️</span><strong>${likes.toLocaleString('pt-BR')}</strong><small>likes</small></div>
+        <div class="ds-stat"><span>📺</span><strong>${canais.length}</strong><small>canais</small></div>
+      </div>
+      ${canaisHtml}`;
   } else {
     const fontes = [...new Set(posts.map(p=>p.autor).filter(Boolean))].slice(0,8);
     statsHtml = `
@@ -557,24 +605,7 @@ function renderizarDetalheConteudo(posts, fonte) {
   // ─ Posts
   const dContainer = document.getElementById('d-posts-list');
   dContainer.innerHTML = '';
-  // Paginação no detalhamento
-let dPaginaAtual = 1;
-const D_POSTS_POR_PAGINA = 20;
-const dInicio = (dPaginaAtual - 1) * D_POSTS_POR_PAGINA;
-posts.slice(dInicio, dInicio + D_POSTS_POR_PAGINA).forEach((p,i) => renderizarPostCard(p, i, dContainer));
-
-// Paginação simples no detalhamento
-const dTotalPags = Math.ceil(posts.length / D_POSTS_POR_PAGINA);
-if (dTotalPags > 1) {
-  const dPag = document.getElementById('d-posts-pagination');
-  if (dPag) {
-    let html = '';
-    for (let p = 1; p <= dTotalPags; p++) {
-      html += `<button class="page-btn ${p===dPaginaAtual?'active':''}" onclick="irParaPaginaDetalhe(${p})">${p}</button>`;
-    }
-    dPag.innerHTML = html;
-  }
-}
+  posts.slice(0, 50).forEach((p,i) => renderizarPostCard(p, i, dContainer));
 }
 
 /* ── Termômetro genérico (reutilizável) ── */
@@ -854,23 +885,6 @@ function irParaPagina(p) {
   paginaAtual=p;
   renderizarPagina();
   document.querySelector('.posts-section-header')?.scrollIntoView({behavior:'smooth'});
-}
-
-
-function irParaPaginaDetalhe(p) {
-  const fonte = document.getElementById('detalhe-fonte-titulo')?.dataset?.fonte;
-  const posts = fonte ? dadosFontes[fonte] : [];
-  const total = Math.ceil(posts.length / 20);
-  if (p < 1 || p > total) return;
-  const dContainer = document.getElementById('d-posts-list');
-  dContainer.innerHTML = '';
-  const inicio = (p - 1) * 20;
-  posts.slice(inicio, inicio + 20).forEach((post, i) => renderizarPostCard(post, i, dContainer));
-  // Atualiza botões ativos
-  document.querySelectorAll('#d-posts-pagination .page-btn').forEach((btn, idx) => {
-    btn.classList.toggle('active', idx + 1 === p);
-  });
-  dContainer.scrollIntoView({ behavior: 'smooth' });
 }
 
 /* ── Utilitários ── */
