@@ -1,4 +1,3 @@
-// 🔐 Carregar variáveis de ambiente corretamente
 require("dotenv").config({
   path: require("path").resolve(__dirname, ".env")
 });
@@ -7,16 +6,11 @@ const express = require("express");
 const cors    = require("cors");
 const path    = require("path");
 
-// 🔍 DEBUG (pode remover depois)
-console.log("=== TESTE ENV ===");
-console.log("USER:", process.env.BSKY_USER);
-console.log("PASS:", process.env.BSKY_PASS);
-console.log("=================");
-
 // 📦 Rotas
 const searchRoutes  = require("./routes/search");
 const webRoutes     = require("./routes/web");
 const blueskyRoutes = require("./routes/bluesky");
+const youtubeRoutes = require("./routes/youtube");  // ← novo
 
 const app = express();
 
@@ -25,9 +19,10 @@ app.use(cors());
 app.use(express.json());
 
 // 🌐 Rotas da API
-app.use("/api", searchRoutes);
-app.use("/api", webRoutes);
-app.use("/bluesky", blueskyRoutes);
+app.use("/api",      searchRoutes);
+app.use("/api",      webRoutes);
+app.use("/bluesky",  blueskyRoutes);
+app.use("/youtube",  youtubeRoutes);  // ← novo
 
 // 🖥️ Servir frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
