@@ -770,16 +770,6 @@ function renderizarRankingPerfis(posts) {
 }
 
 /* ── Emoções (reutilizável) ── */
-const EMOCOES_LEXICON = {
-  amor:       { icon:'❤️', color:'#f43f5e', palavras:['amor','amo','adoro','amei','paixão','carinho','querido','querida','coração','saudade','afeto','abraço','beijo','apaixonado','romântico','encanto'] },
-  alegria:    { icon:'😄', color:'#f59e0b', palavras:['feliz','alegria','ótimo','excelente','incrível','maravilhoso','perfeito','fantástico','top','animado','felicidade','contente','euforia','oba','uau','show','gostei','amei','sucesso','melhor','recomendo','bom'] },
-  surpresa:   { icon:'😲', color:'#8b5cf6', palavras:['surpresa','incrível','surpreendente','inesperado','nossa','uau','chocante','impressionante','caramba','impossível'] },
-  medo:       { icon:'😨', color:'#06b6d4', palavras:['medo','terror','assustador','ansiedade','pavor','ameaça','risco','perigoso','nervoso','angústia','pânico'] },
-  raiva:      { icon:'😡', color:'#ef4444', palavras:['raiva','ódio','odio','horrível','terrível','péssimo','lixo','absurdo','ridículo','revoltante','irritante','vergonha','indignação','furioso','odeio','revolta'] },
-  tristeza:   { icon:'😢', color:'#64748b', palavras:['triste','tristeza','choro','decepção','decepcionante','frustração','fracasso','pior','lamentável','solidão','deprimido','dor','perda'] },
-  nojo:       { icon:'🤢', color:'#84cc16', palavras:['nojo','repugnante','asqueroso','podre','fedorento','nauseante','repulsivo','grotesco','aversão','repulsa'] },
-  antecipacao:{ icon:'🤩', color:'#f97316', palavras:['ansioso','aguardando','expectativa','mal posso esperar','quero ver','quando sai','lançamento','novidade','quando vai','futuro','tendência','próximo','vem aí'] },
-};
 const NOMES_EMOCAO = { amor:'Amor', alegria:'Alegria', surpresa:'Surpresa', medo:'Medo', raiva:'Raiva', tristeza:'Tristeza', nojo:'Nojo', antecipacao:'Antecipação' };
 
 function renderizarEmocoesBoardEl(posts, el) {
