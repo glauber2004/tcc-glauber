@@ -6,32 +6,31 @@ const express = require("express");
 const cors    = require("cors");
 const path    = require("path");
 
-// 📦 Rotas
+//Rotas
 const searchRoutes  = require("./routes/search");
 const webRoutes     = require("./routes/web");
 const blueskyRoutes = require("./routes/bluesky");
-const youtubeRoutes = require("./routes/youtube");  // ← novo
+const youtubeRoutes = require("./routes/youtube");
 
 const app = express();
 
-// 🔧 Middlewares
+//Middlewares
 app.use(cors());
 app.use(express.json());
 
-// 🌐 Rotas da API
+//Rotas da API
 app.use("/api",      searchRoutes);
 app.use("/api",      webRoutes);
 app.use("/bluesky",  blueskyRoutes);
-app.use("/youtube",  youtubeRoutes);  // ← novo
+app.use("/youtube",  youtubeRoutes);
 
-// 🖥️ Servir frontend
+//Servir frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
-
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
-// 🚀 Start servidor
+//Start servidor
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Backend rodando em http://localhost:${PORT}`);
