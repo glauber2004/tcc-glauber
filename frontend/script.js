@@ -9,11 +9,17 @@ let todosOsPosts = [], postsFiltrados = [];
 let paginaAtual = 1;
 const POSTS_POR_PAGINA = 10;
 
+// Paginação independente da tela de Detalhamento por Fonte
+let postsDetalheFonte = [];   // todos os posts da fonte atualmente aberta
+let fonteDetalheAtual = null; // nome da fonte aberta ('youtube', 'reddit', etc.)
+let paginaAtualDetalhe = 1;
+const POSTS_POR_PAGINA_DETALHE = 50;
+
 // Dados separados por fonte
 let dadosFontes = { reddit: [], bluesky: [], web: [], youtube: [] };
 
 const POSITIVOS = ["bom","ótimo","excelente","incrível","maravilhoso","perfeito","gostei","amei","top","fantástico","feliz","sucesso","melhor","recomendo"];
-const NEGATIVOS = ["ruim","péssimo","horrível","terrível","odio","problema","crise","lixo","decepcionante","triste","fracasso","pior","não recomendo"];
+const NEGATIVOS = ["ruim","morreu","derrota","péssimo","horrível","terrível","odio","problema","crise","lixo","decepcionante","triste","fracasso","pior","não recomendo"];
 
 /* ── Tema ── */
 function toggleTheme() {
@@ -148,63 +154,28 @@ async function buscarReddit(termo, extra, inicio, fim, filtro) {
   return (d.posts || []).map(p => ({ ...p, fonte: 'reddit' }));
 }
 
-/* ── Fonte: Bluesky (via servidor) ── */
-async function buscarBluesky(query, limite = 200) {
+/* ── Fonte: Bluesky (via servidor) ──
+   O backend já faz toda a paginação (até esgotar o cursor ou o teto de
+   segurança), busca os replies de cada post via getPostThread, e aplica
+   o sentiment.js completo tanto nos posts quanto nos comentários. */
+async function buscarBluesky(query) {
   const inicio = document.getElementById("dataInicio").value;
   const fim    = document.getElementById("dataFim").value;
 
-  const posts  = [];
-  let cursor   = undefined;
+  const params = new URLSearchParams({ q: query });
+  if (inicio) params.set('since', inicio);
+  if (fim)    params.set('until', fim);
 
-  // Até 8 páginas de 25 = 200 posts máximo
-  for (let page = 0; page < 8 && posts.length < limite; page++) {
-    const params = new URLSearchParams({ q: query, limit: 100 });
-    if (cursor)  params.set('cursor', cursor);
-    if (inicio)  params.set('since',  inicio);
-    if (fim)     params.set('until',  fim);
+  const resp = await fetch(
+    `http://localhost:3000/bluesky?${params.toString()}`,
+    { headers: { 'Accept': 'application/json' } }
+  );
 
-    const resp = await fetch(
-      `http://localhost:3000/bluesky?${params.toString()}`,
-      { headers: { 'Accept': 'application/json' } }
-    );
+  if (!resp.ok) throw new Error(`Bluesky HTTP ${resp.status}`);
+  const data = await resp.json();
 
-    if (!resp.ok) throw new Error(`Bluesky HTTP ${resp.status}`);
-    const data = await resp.json();
-    const feed = data.posts || [];
-    if (!feed.length) break;
-
-    feed.forEach(p => {
-      const texto = p.text || '';
-      const tl    = texto.toLowerCase();
-      const anal  = analisarSentimento(tl);
-      const autor = p.author || 'desconhecido';
-
-      // Usa a data real do post; fallback para agora
-      const dataPost = p.createdAt ? new Date(p.createdAt) : new Date();
-
-      posts.push({
-        fonte: 'bluesky',
-        texto: texto.slice(0, 200),
-        descricao: '',
-        textoCompleto: tl,
-        dataPost,
-        link: p.url || '#',
-        comentarios: p.replies || 0,
-        autor,
-        upvotes: p.likes || 0,
-        reposts: p.reposts || 0,
-        subreddit: '',
-        sentimento: anal.sentimento,
-        score: anal.score,
-      });
-    });
-
-    cursor = data.cursor;
-    if (!cursor) break;
-    await new Promise(r => setTimeout(r, 300));
-  }
-
-  return posts;
+  // O backend já retorna tudo formatado (texto, sentimento, score, tipo, etc.)
+  return (data.posts || []).map(p => ({ ...p, fonte: 'bluesky' }));
 }
 
 /* ── Fonte: Web/RSS (backend) ── */
@@ -238,23 +209,9 @@ async function buscarYoutube(termo) {
   const data  = await resp.json();
   const posts = data.posts || [];
 
-  return posts.map(p => {
-    const anal = analisarSentimento(p.textoCompleto || "");
-    return { ...p, sentimento: anal.sentimento, score: anal.score, fonte: "youtube" };
-  });
-}
-
-/* ── Análise de sentimento (replicada no front para Bluesky) ── */
-function analisarSentimento(texto) {
-  let score = 0;
-  POSITIVOS.forEach(p => { if (texto.includes(p)) score++; });
-  NEGATIVOS.forEach(p => { if (texto.includes(p)) score--; });
-  let sentimento = '😐 Neutro';
-  if      (score >  1) sentimento = '😊 Muito positivo';
-  else if (score === 1) sentimento = '🙂 Positivo';
-  else if (score === -1) sentimento = '🙁 Negativo';
-  else if (score <  -1) sentimento = '😡 Muito negativo';
-  return { sentimento, score };
+  // O backend já calcula sentimento/score com o sentiment.js completo —
+  // não reanalisar aqui para não sobrescrever com um léxico mais simples.
+  return posts.map(p => ({ ...p, fonte: "youtube" }));
 }
 
 /* ============================================================
@@ -396,7 +353,7 @@ let dChartDonut = null, dChartBar = null, dChartLine = null;
 
 function abrirDetalheFonte(fonte) {
   const posts = dadosFontes[fonte] || [];
-  const nomes = { reddit:'🔴 Reddit', bluesky:'🦋 Bluesky', web:'🌐 Web / Notícias' };
+  const nomes = { reddit:'🔴 Reddit', bluesky:'🦋 Bluesky', web:'🌐 Web / Notícias', youtube:'▶️ YouTube' };
 
   document.getElementById('detalhe-fonte-titulo').textContent = nomes[fonte];
   document.getElementById('detalhe-fonte-count').textContent  = `${posts.length} publicações coletadas`;
@@ -438,14 +395,15 @@ function renderizarDetalheConteudo(posts, fonte) {
       </div>
       ${subs.length ? `<div class="ds-subs">Subreddits: ${subs.map(s=>`<span class="sub-tag">r/${s}</span>`).join('')}</div>` : ''}`;
   } else if (fonte === 'bluesky') {
-    const rep   = posts.reduce((a,p) => a+(p.reposts||0), 0);
-    const likes = posts.reduce((a,p) => a+(p.upvotes||0), 0);
-    const repl  = posts.reduce((a,p) => a+(p.comentarios||0), 0);
+    const postsBase = posts.filter(p => p.tipo === 'post');
+    const comentariosBsky = posts.filter(p => p.tipo === 'comentario');
+    const rep   = postsBase.reduce((a,p) => a+(p.reposts||0), 0);
+    const likes = postsBase.reduce((a,p) => a+(p.upvotes||0), 0);
     statsHtml = `
       <div class="ds-stat-row">
-        <div class="ds-stat"><span>📋</span><strong>${posts.length}</strong><small>publicações</small></div>
+        <div class="ds-stat"><span>📋</span><strong>${postsBase.length}</strong><small>publicações</small></div>
         <div class="ds-stat"><span>❤️</span><strong>${likes.toLocaleString('pt-BR')}</strong><small>likes</small></div>
-        <div class="ds-stat"><span>💬</span><strong>${repl.toLocaleString('pt-BR')}</strong><small>replies</small></div>
+        <div class="ds-stat"><span>💬</span><strong>${comentariosBsky.length.toLocaleString('pt-BR')}</strong><small>comentários analisados</small></div>
         <div class="ds-stat"><span>🔁</span><strong>${rep.toLocaleString('pt-BR')}</strong><small>reposts</small></div>
       </div>`;
   } else if (fonte === 'youtube') {
@@ -602,10 +560,11 @@ function renderizarDetalheConteudo(posts, fonte) {
   // ─ Emoções
   renderizarEmocoesBoardEl(posts, document.getElementById('d-emocoes-board'));
 
-  // ─ Posts
-  const dContainer = document.getElementById('d-posts-list');
-  dContainer.innerHTML = '';
-  posts.slice(0, 50).forEach((p,i) => renderizarPostCard(p, i, dContainer));
+  // ─ Posts (paginados, 50 por página — agrupados por vídeo no caso do YouTube)
+  postsDetalheFonte = posts;
+  fonteDetalheAtual = fonte;
+  paginaAtualDetalhe = 1;
+  renderizarPaginaDetalhe();
 }
 
 /* ── Termômetro genérico (reutilizável) ── */
@@ -770,6 +729,16 @@ function renderizarRankingPerfis(posts) {
 }
 
 /* ── Emoções (reutilizável) ── */
+const EMOCOES_LEXICON = {
+  amor:       { icon:'❤️', color:'#f43f5e', palavras:['amor','amo','adoro','amei','paixão','carinho','querido','querida','coração','saudade','afeto','abraço','beijo','apaixonado','romântico','encanto'] },
+  alegria:    { icon:'😄', color:'#f59e0b', palavras:['feliz','alegria','ótimo','excelente','incrível','maravilhoso','perfeito','fantástico','top','animado','felicidade','contente','euforia','oba','uau','show','gostei','amei','sucesso','melhor','recomendo','bom'] },
+  surpresa:   { icon:'😲', color:'#8b5cf6', palavras:['surpresa','incrível','surpreendente','inesperado','nossa','uau','chocante','impressionante','caramba','impossível'] },
+  medo:       { icon:'😨', color:'#06b6d4', palavras:['medo','terror','assustador','ansiedade','pavor','ameaça','risco','perigoso','nervoso','angústia','pânico'] },
+  raiva:      { icon:'😡', color:'#ef4444', palavras:['raiva','ódio','odio','horrível','terrível','péssimo','lixo','absurdo','ridículo','revoltante','irritante','vergonha','indignação','furioso','odeio','revolta'] },
+  tristeza:   { icon:'😢', color:'#64748b', palavras:['triste','tristeza','choro','decepção','decepcionante','frustração','fracasso','pior','lamentável','solidão','deprimido','dor','perda'] },
+  nojo:       { icon:'🤢', color:'#84cc16', palavras:['nojo','repugnante','asqueroso','podre','fedorento','nauseante','repulsivo','grotesco','aversão','repulsa'] },
+  antecipacao:{ icon:'🤩', color:'#f97316', palavras:['ansioso','aguardando','expectativa','mal posso esperar','quero ver','quando sai','lançamento','novidade','quando vai','futuro','tendência','próximo','vem aí'] },
+};
 const NOMES_EMOCAO = { amor:'Amor', alegria:'Alegria', surpresa:'Surpresa', medo:'Medo', raiva:'Raiva', tristeza:'Tristeza', nojo:'Nojo', antecipacao:'Antecipação' };
 
 function renderizarEmocoesBoardEl(posts, el) {
@@ -817,11 +786,18 @@ function renderizarPostCard(post, i, container) {
   const pPos=POSITIVOS.filter(p=>(post.textoCompleto||'').includes(p));
   const pNeg=NEGATIVOS.filter(p=>(post.textoCompleto||'').includes(p));
   const score=post.score||0;
-  const ftag=post.fonte?`<span class="fonte-badge fonte-${post.fonte}">${post.fonte==='reddit'?'🔴 Reddit':post.fonte==='bluesky'?'🦋 Bluesky':'🌐 Web'}</span>`:'';
+  const ftag=post.fonte?`<span class="fonte-badge fonte-${post.fonte}">${post.fonte==='reddit'?'🔴 Reddit':post.fonte==='bluesky'?'🦋 Bluesky':post.fonte==='youtube'?'▶️ YouTube':'🌐 Web'}</span>`:'';
+  // Thumbnail: só vídeos do YouTube têm post.thumbnail preenchido
+  // (comentários do YouTube não têm thumbnail própria — herdam o vídeo de origem)
+  const temThumb = post.fonte==='youtube' && post.thumbnail;
+  const thumbHtml = temThumb
+    ? `<img src="${post.thumbnail}" alt="${escapar(post.texto)}" class="post-thumb" loading="lazy">`
+    : '';
   const card=document.createElement('div');
-  card.className=`post-card ${cls}`;
+  card.className=`post-card ${cls} ${temThumb?'has-thumb':''}`;
   card.innerHTML=`
     <div class="post-header" onclick="togglePost(this.closest('.post-card'))">
+      ${thumbHtml}
       <div class="post-sentiment-icon">${icone}</div>
       <div class="post-body">
         <div class="post-title">${escapar(post.texto)}</div>
@@ -875,6 +851,294 @@ function irParaPagina(p) {
   paginaAtual=p;
   renderizarPagina();
   document.querySelector('.posts-section-header')?.scrollIntoView({behavior:'smooth'});
+}
+
+/* ── Paginação — tela de Detalhamento por Fonte (50 por página) ── */
+// Para fontes com comentários aninhados (YouTube, Bluesky) os itens são
+// agrupados pelo post/vídeo "pai" + seus comentários; a paginação então
+// conta unidades pai, não itens somados. Para as demais fontes (Reddit, Web),
+// mantém a lista plana de sempre.
+
+// Identifica a chave de agrupamento (videoId no YouTube, postUri no Bluesky)
+function chaveAgrupamento(fonte) {
+  if (fonte === 'youtube') return { tipoPai: 'video', chave: 'videoId' };
+  if (fonte === 'bluesky') return { tipoPai: 'post',  chave: 'postUri', chavePai: 'uri' };
+  return null;
+}
+
+function agruparPorPost(posts, fonte) {
+  const cfg = chaveAgrupamento(fonte);
+  const grupoMap = new Map();
+  const semChave = [];
+
+  posts.forEach(p => {
+    if (p.tipo === cfg.tipoPai) {
+      // Para o post/vídeo pai, usa sua própria chave (videoId no YT, uri no Bluesky)
+      const k = cfg.chavePai ? p[cfg.chavePai] : p[cfg.chave];
+      grupoMap.set(k, { pai: p, comentarios: grupoMap.get(k)?.comentarios || [] });
+    } else if (p.tipo === 'comentario') {
+      const k = p[cfg.chave];
+      if (k && grupoMap.has(k)) {
+        grupoMap.get(k).comentarios.push(p);
+      } else if (k) {
+        // Comentário cujo post "pai" não está nesta página/lista — agrupa à parte
+        grupoMap.set(k, { pai: null, comentarios: [p] });
+      } else {
+        semChave.push(p);
+      }
+    } else {
+      semChave.push(p);
+    }
+  });
+
+  return { grupos: [...grupoMap.values()], orfaos: semChave };
+}
+
+// Mantido por compatibilidade com qualquer referência antiga
+function agruparPorVideo(posts) {
+  return agruparPorPost(posts, 'youtube');
+}
+
+function renderizarPaginaDetalhe() {
+  const container = document.getElementById('d-posts-list');
+  const pagDiv    = document.getElementById('d-posts-pagination');
+  container.innerHTML = '';
+
+  if (!postsDetalheFonte.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--txt3);padding:40px">Nenhuma publicação encontrada.</div>';
+    pagDiv.innerHTML = '';
+    return;
+  }
+
+  const temAgrupamento = fonteDetalheAtual === 'youtube' || fonteDetalheAtual === 'bluesky';
+
+  if (temAgrupamento) {
+    const { grupos, orfaos } = agruparPorPost(postsDetalheFonte, fonteDetalheAtual);
+    const totalGrupos = grupos.length;
+    const inicio = (paginaAtualDetalhe-1)*POSTS_POR_PAGINA_DETALHE;
+    const pageGrupos = grupos.slice(inicio, inicio+POSTS_POR_PAGINA_DETALHE);
+
+    if (!pageGrupos.length) {
+      container.innerHTML = '<div style="text-align:center;color:var(--txt3);padding:40px">Nenhuma publicação encontrada.</div>';
+      pagDiv.innerHTML = '';
+      return;
+    }
+
+    pageGrupos.forEach((g, i) => {
+      if (fonteDetalheAtual === 'youtube') {
+        renderizarVideoComComentarios(g.pai, g.comentarios, i, container);
+      } else {
+        renderizarPostComComentarios(g.pai, g.comentarios, i, container);
+      }
+    });
+
+    // Comentários órfãos (sem post/vídeo correspondente nesta página) — mostra à parte
+    if (orfaos.length && paginaAtualDetalhe === 1) {
+      const bloco = document.createElement('div');
+      bloco.className = 'video-group video-group-orfaos';
+      bloco.innerHTML = `<div class="video-group-orfaos-label">💬 ${orfaos.length} comentário(s) sem publicação associada nesta página</div>`;
+      const lista = document.createElement('div');
+      lista.className = 'comentarios-lista';
+      orfaos.forEach((c,i) => lista.appendChild(criarComentarioEl(c, `orfao-${i}`)));
+      bloco.appendChild(lista);
+      container.appendChild(bloco);
+    }
+
+    renderizarPaginacaoGenerica(totalGrupos, POSTS_POR_PAGINA_DETALHE, paginaAtualDetalhe, pagDiv, irParaPaginaDetalhe);
+    return;
+  }
+
+  // ── Fontes sem agrupamento (Reddit, Web): lista plana, como antes ──
+  const inicio = (paginaAtualDetalhe-1)*POSTS_POR_PAGINA_DETALHE;
+  const pagePosts = postsDetalheFonte.slice(inicio, inicio+POSTS_POR_PAGINA_DETALHE);
+  if (!pagePosts.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--txt3);padding:40px">Nenhuma publicação encontrada.</div>';
+    pagDiv.innerHTML = '';
+    return;
+  }
+  pagePosts.forEach((p,i) => renderizarPostCard(p, i, container));
+  renderizarPaginacaoGenerica(postsDetalheFonte.length, POSTS_POR_PAGINA_DETALHE, paginaAtualDetalhe, pagDiv, irParaPaginaDetalhe);
+}
+
+// Renderiza um vídeo em destaque (thumb grande) com seus comentários aninhados abaixo
+function renderizarVideoComComentarios(video, comentarios, i, container) {
+  const grupo = document.createElement('div');
+  grupo.className = 'video-group';
+
+  if (video) {
+    const cls    = obterClasse(video.sentimento);
+    const icone  = cls==='pos'?'😊':cls==='neg'?'😡':'😐';
+    const data   = new Date(video.dataPost).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const score  = video.score||0;
+    const thumb  = video.thumbnail
+      ? `<img src="${video.thumbnail}" alt="${escapar(video.texto)}" class="video-thumb-grande" loading="lazy">`
+      : `<div class="video-thumb-grande video-thumb-fallback">▶️</div>`;
+
+    grupo.innerHTML = `
+      <div class="video-card-header" onclick="toggleVideoGroup(this.closest('.video-group'))">
+        <div class="video-thumb-wrap">${thumb}<span class="video-play-badge">▶</span></div>
+        <div class="video-info">
+          <div class="video-titulo">${escapar(video.texto)}</div>
+          <div class="video-meta">
+            <span class="fonte-badge fonte-youtube">▶️ YouTube</span>
+            <span class="post-badge ${cls}">${video.sentimento}</span>
+            <span class="post-score-chip">Score ${score>=0?'+':''}${score}</span>
+            <span>📅 ${data}</span>
+            <span>📺 ${escapar(video.canal||'')}</span>
+            <span>👍 ${(video.upvotes||0).toLocaleString('pt-BR')}</span>
+            <span>👁️ ${(video.views||0).toLocaleString('pt-BR')}</span>
+            <span>💬 ${comentarios.length} analisados</span>
+          </div>
+        </div>
+        <div class="post-chevron">▾</div>
+      </div>
+      <div class="video-card-detail">
+        ${video.descricao?`<div class="post-desc" id="desc-v${i}">${escapar(video.descricao)}<div class="post-desc-fade" id="fade-v${i}"></div></div><button class="btn-read-more" onclick="expandirDescricao('v${i}')">+ Ver descrição completa</button>`:''}
+        <div class="post-actions"><a class="post-link" href="${video.link}" target="_blank" rel="noopener">Abrir vídeo no YouTube ↗</a></div>
+        ${comentarios.length ? `
+          <div class="comentarios-header">💬 Comentários analisados (${comentarios.length})</div>
+          <div class="comentarios-lista"></div>
+        ` : '<div class="comentarios-vazio">Nenhum comentário coletado para este vídeo.</div>'}
+      </div>`;
+  } else {
+    // Grupo sem dados do vídeo (caso raro: vídeo fora da página, mas comentário presente)
+    grupo.innerHTML = `
+      <div class="video-card-header" onclick="toggleVideoGroup(this.closest('.video-group'))">
+        <div class="video-thumb-wrap"><div class="video-thumb-grande video-thumb-fallback">▶️</div></div>
+        <div class="video-info">
+          <div class="video-titulo">${escapar(comentarios[0]?.videoTitulo || 'Vídeo não identificado')}</div>
+          <div class="video-meta"><span>💬 ${comentarios.length} comentários analisados</span></div>
+        </div>
+        <div class="post-chevron">▾</div>
+      </div>
+      <div class="video-card-detail">
+        <div class="comentarios-header">💬 Comentários analisados (${comentarios.length})</div>
+        <div class="comentarios-lista"></div>
+      </div>`;
+  }
+
+  const listaEl = grupo.querySelector('.comentarios-lista');
+  if (listaEl) comentarios.forEach((c, ci) => listaEl.appendChild(criarComentarioEl(c, `${i}-${ci}`)));
+
+  container.appendChild(grupo);
+}
+
+// Renderiza um post do Bluesky (sem thumbnail, é texto) com suas replies aninhadas
+function renderizarPostComComentarios(post, comentarios, i, container) {
+  const grupo = document.createElement('div');
+  grupo.className = 'video-group post-group-texto';
+
+  if (post) {
+    const cls   = obterClasse(post.sentimento);
+    const icone = cls==='pos'?'😊':cls==='neg'?'😡':'😐';
+    const data  = new Date(post.dataPost).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const score = post.score||0;
+
+    grupo.innerHTML = `
+      <div class="video-card-header post-header-texto" onclick="toggleVideoGroup(this.closest('.video-group'))">
+        <div class="post-sentiment-icon-grande">${icone}</div>
+        <div class="video-info">
+          <div class="video-titulo post-titulo-texto">${escapar(post.texto)}</div>
+          <div class="video-meta">
+            <span class="fonte-badge fonte-bluesky">🦋 Bluesky</span>
+            <span class="post-badge ${cls}">${post.sentimento}</span>
+            <span class="post-score-chip">Score ${score>=0?'+':''}${score}</span>
+            <span>📅 ${data}</span>
+            <span>👤 ${escapar(post.autor||'')}</span>
+            <span>❤️ ${(post.upvotes||0).toLocaleString('pt-BR')}</span>
+            <span>🔁 ${(post.reposts||0).toLocaleString('pt-BR')}</span>
+            <span>💬 ${comentarios.length} analisados</span>
+          </div>
+        </div>
+        <div class="post-chevron">▾</div>
+      </div>
+      <div class="video-card-detail">
+        <div class="post-actions"><a class="post-link" href="${post.link}" target="_blank" rel="noopener">Abrir post no Bluesky ↗</a></div>
+        ${comentarios.length ? `
+          <div class="comentarios-header">💬 Comentários analisados (${comentarios.length})</div>
+          <div class="comentarios-lista"></div>
+        ` : '<div class="comentarios-vazio">Nenhuma resposta coletada para este post.</div>'}
+      </div>`;
+  } else {
+    // Grupo sem dados do post (caso raro: post fora da página, mas comentário presente)
+    grupo.innerHTML = `
+      <div class="video-card-header post-header-texto" onclick="toggleVideoGroup(this.closest('.video-group'))">
+        <div class="post-sentiment-icon-grande">💬</div>
+        <div class="video-info">
+          <div class="video-titulo post-titulo-texto">${escapar(comentarios[0]?.postTexto || 'Post não identificado')}</div>
+          <div class="video-meta"><span>💬 ${comentarios.length} comentários analisados</span></div>
+        </div>
+        <div class="post-chevron">▾</div>
+      </div>
+      <div class="video-card-detail">
+        <div class="comentarios-header">💬 Comentários analisados (${comentarios.length})</div>
+        <div class="comentarios-lista"></div>
+      </div>`;
+  }
+
+  const listaEl = grupo.querySelector('.comentarios-lista');
+  if (listaEl) comentarios.forEach((c, ci) => listaEl.appendChild(criarComentarioEl(c, `bsky-${i}-${ci}`)));
+
+  container.appendChild(grupo);
+}
+
+// Cria o elemento de UM comentário (linha compacta, sem collapse — comentários são curtos)
+function criarComentarioEl(c, key) {
+  const cls   = obterClasse(c.sentimento);
+  const icone = cls==='pos'?'😊':cls==='neg'?'😡':'😐';
+  const data  = new Date(c.dataPost).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const score = c.score||0;
+  const el = document.createElement('div');
+  el.className = `comentario-item ${cls}`;
+  el.innerHTML = `
+    <div class="comentario-icon">${icone}</div>
+    <div class="comentario-body">
+      <div class="comentario-texto">${escapar(c.texto)}</div>
+      <div class="comentario-meta">
+        <span class="post-badge ${cls}">${c.sentimento}</span>
+        <span class="post-score-chip">Score ${score>=0?'+':''}${score}</span>
+        <span>👤 ${escapar(c.autor||'Anônimo')}</span>
+        <span>👍 ${(c.upvotes||0).toLocaleString('pt-BR')}</span>
+        <span>📅 ${data}</span>
+        ${c.link ? `<a class="comentario-link" href="${c.link}" target="_blank" rel="noopener">Ver no YouTube ↗</a>` : ''}
+      </div>
+    </div>`;
+  return el;
+}
+
+function toggleVideoGroup(grupo) {
+  grupo.classList.toggle('open');
+}
+
+// Paginação genérica reutilizável (conta "unidades" abstratas — vídeos ou posts)
+function renderizarPaginacaoGenerica(totalUnidades, porPagina, paginaAtualX, pagEl, callback) {
+  const tPags = Math.ceil(totalUnidades/porPagina);
+  if (!pagEl) return;
+  if (tPags<=1){ pagEl.innerHTML=''; return; }
+  let html = `<button class="page-btn" onclick="${callback.name}(${paginaAtualX-1})" ${paginaAtualX===1?'disabled':''}>← Anterior</button>`;
+  for(let p=1;p<=tPags;p++){
+    if(tPags>7&&p>2&&p<tPags-1&&Math.abs(p-paginaAtualX)>1){ if(p===3||p===tPags-2) html+='<span style="color:var(--txt3);padding:0 4px">…</span>'; continue; }
+    html += `<button class="page-btn ${p===paginaAtualX?'active':''}" onclick="${callback.name}(${p})">${p}</button>`;
+  }
+  html += `<button class="page-btn" onclick="${callback.name}(${paginaAtualX+1})" ${paginaAtualX===tPags?'disabled':''}>Próxima →</button>`;
+  pagEl.innerHTML = html;
+}
+
+function renderizarPaginacaoDetalhe() {
+  // mantido por compatibilidade — a lógica real está em renderizarPaginacaoGenerica,
+  // chamada diretamente dentro de renderizarPaginaDetalhe()
+}
+
+function irParaPaginaDetalhe(p) {
+  const temAgrupamento = fonteDetalheAtual === 'youtube' || fonteDetalheAtual === 'bluesky';
+  const totalUnidades = temAgrupamento
+    ? agruparPorPost(postsDetalheFonte, fonteDetalheAtual).grupos.length
+    : postsDetalheFonte.length;
+  const total = Math.ceil(totalUnidades/POSTS_POR_PAGINA_DETALHE);
+  if(p<1||p>total) return;
+  paginaAtualDetalhe = p;
+  renderizarPaginaDetalhe();
+  document.getElementById('d-posts-list')?.scrollIntoView({behavior:'smooth'});
 }
 
 /* ── Utilitários ── */

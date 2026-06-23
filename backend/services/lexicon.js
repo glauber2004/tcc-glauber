@@ -98,7 +98,7 @@ const positivo = [
   "indispensável", "indispensáveis",
 
   // Eficiência / competência
-  "eficiente", "eficientes",
+  "eficiente", "eficientes", "eficiência", "eficiências",
   "eficaz", "eficazes",
   "competente", "competentes",
   "profissional", "profissionais",
@@ -140,7 +140,7 @@ const positivo = [
   "pioneiro", "pioneira",
 
   // Custo-benefício / acessibilidade
-  "barato", "barata", "baratos", "baratas",
+  "barato", "barata", "baratos", "baratas", "gratuito", "gratuita",
   "acessível", "acessíveis",
   "econômico", "econômica",
   "custo-benefício",
@@ -199,7 +199,7 @@ const positivo = [
   "comovente", "comoventes",
 
   // Expressões informais positivas (redes sociais)
-  "top demais", "muito bom", "muito boa",
+  "top demais", "muito bom", "muito boa", "você é fera", "você é demais", "você é incrível",
   "muito bem", "muito legal",
   "legal", "legais",
   "bacana", "bacanas",
@@ -216,7 +216,7 @@ const positivo = [
   "que show", "que incrível",
   "parabéns", "parabéns mesmo",
   "orgulho", "com orgulho",
-  "faz bem", "ajuda muito",
+  "faz bem", "ajuda muito", "faz um bem danado", "ajudou muito",
   "surreal", "impossível não amar",
   "10/10", "nota 10", "nota máxima",
   "five stars", "cinco estrelas",
@@ -261,7 +261,7 @@ const negativo = [
   "bug", "bugs",
   "defeito", "defeitos",
   "defeituoso", "defeituosa",
-  "quebrado", "quebrada",
+  "quebrado", "quebrada", "quebrados", "quebradas",  
   "estragado", "estragada",
   "danificado", "danificada",
   "travou", "trava", "travando",
@@ -348,7 +348,7 @@ const negativo = [
   "desleixado", "desleixada",
 
   // Desonestidade / injustiça
-  "mentira", "mentiras",
+  "mentira", "mentiras", "falsos", "falsa", "falsidade", "falso", "falsamente",
   "mentiu", "mentiroso", "mentirosa",
   "fraude", "fraudulento", "fraudulenta",
   "golpe", "golpista",
@@ -379,14 +379,15 @@ const negativo = [
   "inquietante", "inquietantes",
 
   // Violência / agressão
-  "violência", "violento", "violenta",
-  "agressão", "agressivo", "agressiva",
+  "violência", "violento", "violenta", "foi morto", "foi assassinada", "foi assassinado", 
+  "assassinou", "assassinada", "é morto", "é assassinada", "é assassinado", "morto",
+  "agressão", "agressivo", "agressiva", "carbonizado", "esfaqueado", "esfaqueada",
   "agrediu",
   "ataque", "atacou",
   "briga", "brigar",
   "conflito", "conflitos",
   "guerra", "guerras",
-  "destruição", "destruiu",
+  "destruição", "destruiu", "vandalizar", "incêndio", "incendiou",
   "vandalizou", "vandalismo",
   "crime", "crimes", "criminoso", "criminosa",
 
@@ -399,7 +400,7 @@ const negativo = [
   "infectado", "infecção",
   "sintoma", "sintomas",
   "sofrimento", "agonia",
-  "morte", "morreu", "mortes",
+  "morte", "morreu", "mortes", 
   "fatal", "fatais",
   "grave", "graves",
 
@@ -415,9 +416,9 @@ const negativo = [
   "cobrou demais",
   "superfaturamento",
 
-  // Expressões informais negativas (redes sociais)
-  "lixo", "uma lixo",
-  "pior", "o pior", "a pior",
+  //   (redes sociais)
+  "lixo", "uma lixo", "levado a força", "pior que lixo",
+  "pior", "o pior", "a pior", "infelizmente o pior", "pior impossível","infeliz", "infelizmente",
   "uma merda", "merda",
   "uma bosta", "bosta",
   "uma droga",

@@ -821,6 +821,21 @@ select option { background:var(--ink2); color:var(--txt); }
 .post-header:hover { background:rgba(255,255,255,.02); }
 [data-theme="light"] .post-header:hover { background:rgba(0,0,0,.02); }
 .post-sentiment-icon { font-size:1.3rem; flex-shrink:0; }
+
+/* Thumbnail pequena (usada apenas na lista geral/mista, fora da tela de detalhe do YouTube) */
+.post-thumb {
+  width:96px; height:54px; flex-shrink:0;
+  border-radius:var(--r-sm); object-fit:cover;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.04);
+}
+[data-theme="light"] .post-thumb { background:rgba(0,0,0,.04); }
+.post-card.has-thumb .post-header { align-items:center; }
+
+@media (max-width: 560px) {
+  .post-thumb { width:64px; height:36px; }
+}
+
 .post-body { flex:1; min-width:0; }
 .post-title {
   font-size:.88rem; font-weight:600; line-height:1.45;
@@ -859,6 +874,124 @@ select option { background:var(--ink2); color:var(--txt); }
   to   { opacity:1; transform:translateY(0); }
 }
 .post-card.open .post-detail { display:block; }
+
+/* ============================================================
+   VÍDEO + COMENTÁRIOS AGRUPADOS (tela de Detalhamento — YouTube)
+   Cada vídeo é um painel com thumb em destaque; os comentários
+   analisados daquele vídeo ficam aninhados dentro, ao expandir.
+============================================================ */
+.video-group {
+  border-radius:var(--r-md); border:1px solid var(--border);
+  overflow:hidden; background:var(--card); transition:.2s;
+}
+.video-group:hover { border-color:var(--border2); }
+.video-group + .video-group { margin-top:10px; }
+
+.video-card-header {
+  padding:14px 18px;
+  display:flex; align-items:flex-start; gap:14px; cursor:pointer; user-select:none;
+}
+.video-card-header:hover { background:rgba(255,255,255,.02); }
+[data-theme="light"] .video-card-header:hover { background:rgba(0,0,0,.02); }
+
+.video-thumb-wrap { position:relative; flex-shrink:0; }
+.video-thumb-grande {
+  width:180px; height:101px; object-fit:cover;
+  border-radius:var(--r-sm); border:1px solid var(--border);
+  display:block; background:rgba(255,255,255,.04);
+}
+[data-theme="light"] .video-thumb-grande { background:rgba(0,0,0,.04); }
+.video-thumb-fallback {
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.8rem; color:var(--txt3);
+}
+.video-play-badge {
+  position:absolute; bottom:6px; right:6px;
+  background:rgba(0,0,0,.72); color:#fff;
+  font-size:.65rem; padding:2px 6px; border-radius:4px;
+  line-height:1; pointer-events:none;
+}
+
+.video-info { flex:1; min-width:0; padding-top:2px; }
+.video-titulo {
+  font-size:.92rem; font-weight:700; line-height:1.4;
+  color:var(--txt); margin-bottom:8px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.video-meta {
+  display:flex; align-items:center; flex-wrap:wrap; gap:9px;
+  font-size:.72rem; color:var(--txt3);
+}
+
+.video-card-detail {
+  display:none; padding:16px 18px 18px 18px;
+  border-top:1px solid var(--border);
+  background:rgba(255,255,255,.015);
+  animation:slideDown .2s ease;
+}
+[data-theme="light"] .video-card-detail { background:rgba(0,0,0,.015); }
+.video-group.open .video-card-detail { display:block; }
+.video-group.open .post-chevron { transform:rotate(180deg); }
+
+.comentarios-header {
+  font-size:.74rem; font-weight:700; color:var(--txt2);
+  text-transform:uppercase; letter-spacing:.04em;
+  margin:14px 0 10px; padding-top:12px; border-top:1px dashed var(--border);
+}
+.video-card-detail > .comentarios-header:first-child { padding-top:0; border-top:none; margin-top:0; }
+.comentarios-vazio { font-size:.8rem; color:var(--txt3); margin-top:10px; }
+
+.comentarios-lista { display:flex; flex-direction:column; gap:8px; }
+
+.comentario-item {
+  display:flex; gap:10px; padding:10px 12px;
+  border-radius:var(--r-sm); background:rgba(255,255,255,.025);
+  border:1px solid var(--border); border-left:3px solid #475569;
+}
+[data-theme="light"] .comentario-item { background:rgba(0,0,0,.02); }
+.comentario-item.pos { border-left-color:var(--green-d); }
+.comentario-item.neg { border-left-color:var(--red-d); }
+.comentario-item.neu { border-left-color:#475569; }
+
+.comentario-icon { font-size:1rem; flex-shrink:0; margin-top:1px; }
+.comentario-body { flex:1; min-width:0; }
+.comentario-texto {
+  font-size:.83rem; line-height:1.5; color:var(--txt);
+  margin-bottom:6px; word-break:break-word;
+}
+.comentario-meta {
+  display:flex; align-items:center; flex-wrap:wrap; gap:8px;
+  font-size:.68rem; color:var(--txt3);
+}
+.comentario-link { color:var(--blue); text-decoration:none; }
+.comentario-link:hover { text-decoration:underline; }
+
+.video-group-orfaos { padding:14px 18px; }
+.video-group-orfaos-label {
+  font-size:.78rem; color:var(--txt3); margin-bottom:10px;
+}
+
+/* ── Posts de texto agrupados (Bluesky) — mesma estrutura do video-group,
+   mas sem thumbnail; usa um ícone grande de sentimento no lugar ── */
+.post-group-texto .post-header-texto { align-items:flex-start; }
+.post-sentiment-icon-grande {
+  width:48px; height:48px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.5rem; border-radius:var(--r-sm);
+  background:rgba(255,255,255,.04); border:1px solid var(--border);
+}
+[data-theme="light"] .post-sentiment-icon-grande { background:rgba(0,0,0,.03); }
+.post-titulo-texto {
+  -webkit-line-clamp:4; /* posts de texto podem ser mais longos que títulos de vídeo */
+  font-weight:500;
+}
+
+@media (max-width: 640px) {
+  .video-card-header { flex-wrap:wrap; }
+  .video-thumb-grande { width:100%; height:auto; aspect-ratio:16/9; }
+  .video-thumb-wrap { width:100%; }
+}
 
 .post-desc {
   font-size:.84rem; color:var(--txt2); line-height:1.65;
