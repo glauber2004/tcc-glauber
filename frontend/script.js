@@ -728,34 +728,69 @@ function renderizarRankingPerfis(posts) {
   }).join('');
 }
 
-/* ── Emoções (reutilizável) ── */
-const EMOCOES_LEXICON = {
-  amor:       { icon:'❤️', color:'#f43f5e', palavras:['amor','amo','adoro','amei','paixão','carinho','querido','querida','coração','saudade','afeto','abraço','beijo','apaixonado','romântico','encanto'] },
-  alegria:    { icon:'😄', color:'#f59e0b', palavras:['feliz','alegria','ótimo','excelente','incrível','maravilhoso','perfeito','fantástico','top','animado','felicidade','contente','euforia','oba','uau','show','gostei','amei','sucesso','melhor','recomendo','bom'] },
-  surpresa:   { icon:'😲', color:'#8b5cf6', palavras:['surpresa','incrível','surpreendente','inesperado','nossa','uau','chocante','impressionante','caramba','impossível'] },
-  medo:       { icon:'😨', color:'#06b6d4', palavras:['medo','terror','assustador','ansiedade','pavor','ameaça','risco','perigoso','nervoso','angústia','pânico'] },
-  raiva:      { icon:'😡', color:'#ef4444', palavras:['raiva','ódio','odio','horrível','terrível','péssimo','lixo','absurdo','ridículo','revoltante','irritante','vergonha','indignação','furioso','odeio','revolta'] },
-  tristeza:   { icon:'😢', color:'#64748b', palavras:['triste','tristeza','choro','decepção','decepcionante','frustração','fracasso','pior','lamentável','solidão','deprimido','dor','perda'] },
-  nojo:       { icon:'🤢', color:'#84cc16', palavras:['nojo','repugnante','asqueroso','podre','fedorento','nauseante','repulsivo','grotesco','aversão','repulsa'] },
-  antecipacao:{ icon:'🤩', color:'#f97316', palavras:['ansioso','aguardando','expectativa','mal posso esperar','quero ver','quando sai','lançamento','novidade','quando vai','futuro','tendência','próximo','vem aí'] },
-};
+/* ── Emoções ──────────────────────────────────────────────────────────────
+   O léxico de emoções (objeto EMOCOES_LEXICON, com 8 categorias e listas
+   extensas de palavras/expressões) vem do arquivo emocoes_lexicon.js,
+   carregado antes deste script no index.html. Aqui ficam apenas os rótulos
+   de exibição e a lógica de contagem/renderização.
+---------------------------------------------------------------------------*/
 const NOMES_EMOCAO = { amor:'Amor', alegria:'Alegria', surpresa:'Surpresa', medo:'Medo', raiva:'Raiva', tristeza:'Tristeza', nojo:'Nojo', antecipacao:'Antecipação' };
+
+// Termos de negação considerados na análise de emoções. Se uma palavra do
+// léxico aparecer logo após um termo de negação (ex.: "não senti nenhuma
+// alegria"), essa ocorrência é descartada para evitar falsos positivos —
+// mesmo princípio já aplicado em sentiment.js para a polaridade geral.
+const NEGACOES_EMOCAO = ['não', 'nao', 'nunca', 'jamais', 'nem', 'sem', 'nenhum', 'nenhuma'];
+
+function ocorrenciaNegada(texto, posicao, janela = 25) {
+  const inicio = Math.max(0, posicao - janela);
+  const trecho = texto.slice(inicio, posicao);
+  return NEGACOES_EMOCAO.some(neg => trecho.includes(neg));
+}
 
 function renderizarEmocoesBoardEl(posts, el) {
   if (!el) return;
-  const cnt={};
-  Object.keys(EMOCOES_LEXICON).forEach(e=>{cnt[e]=0;});
-  posts.forEach(p=>{
-    const txt=(p.textoCompleto||'').toLowerCase();
-    Object.entries(EMOCOES_LEXICON).forEach(([em,cfg])=>{ cfg.palavras.forEach(w=>{ if(txt.includes(w)) cnt[em]++; }); });
+  if (typeof EMOCOES_LEXICON === 'undefined') {
+    console.warn('EMOCOES_LEXICON não encontrado — verifique se emocoes_lexicon.js foi carregado antes de script.js.');
+    return;
+  }
+
+  const cnt = {};
+  Object.keys(EMOCOES_LEXICON).forEach(e => { cnt[e] = 0; });
+
+  posts.forEach(p => {
+    const txt = (p.textoCompleto || '').toLowerCase();
+
+    Object.entries(EMOCOES_LEXICON).forEach(([emocao, cfg]) => {
+      cfg.palavras.forEach(palavra => {
+        // Procura todas as ocorrências da palavra/expressão no texto e
+        // conta a emoção assim que encontrar pelo menos uma ocorrência
+        // que não esteja sob efeito de negação.
+        let idx = txt.indexOf(palavra);
+        while (idx !== -1) {
+          if (!ocorrenciaNegada(txt, idx)) {
+            cnt[emocao]++;
+            break;
+          }
+          idx = txt.indexOf(palavra, idx + palavra.length);
+        }
+      });
+    });
   });
-  const total=Object.values(cnt).reduce((a,b)=>a+b,0)||1;
-  const ranking=Object.entries(cnt).map(([k,v])=>({k,v,...EMOCOES_LEXICON[k]})).sort((a,b)=>b.v-a.v);
-  const maxV=ranking[0]?.v||1;
-  el.innerHTML=ranking.map((em,i)=>{
-    const pct=Math.round((em.v/total)*100);
-    const bp=Math.round((em.v/maxV)*100);
-    return `<div class="emocao-row ${i===0?'emocao-destaque':''}"><div class="emocao-icon">${em.icon}</div><div class="emocao-body"><div class="emocao-name">${NOMES_EMOCAO[em.k]}</div><div class="emocao-bar-wrap"><div class="emocao-bar-bg"><div class="emocao-bar-fill" style="width:${bp}%;background:${em.color}"></div></div><span class="emocao-pct" style="color:${em.color}">${pct}%</span></div><div class="emocao-count">${em.v} ocorrências</div></div>${i===0?'<div class="emocao-crown">👑 Dominante</div>':''}</div>`;
+
+  const total = Object.values(cnt).reduce((a, b) => a + b, 0) || 1;
+  const ranking = Object.entries(cnt).map(([k, v]) => ({ k, v, ...EMOCOES_LEXICON[k] })).sort((a, b) => b.v - a.v);
+  const maxV = ranking[0]?.v || 1;
+
+  if (maxV === 0) {
+    el.innerHTML = '<div style="text-align:center;color:var(--txt3);padding:24px">Nenhuma emoção identificada nas publicações coletadas.</div>';
+    return;
+  }
+
+  el.innerHTML = ranking.map((em, i) => {
+    const pct = Math.round((em.v / total) * 100);
+    const bp  = Math.round((em.v / maxV) * 100);
+    return `<div class="emocao-row ${i === 0 ? 'emocao-destaque' : ''}"><div class="emocao-icon">${em.icon}</div><div class="emocao-body"><div class="emocao-name">${NOMES_EMOCAO[em.k]}</div><div class="emocao-bar-wrap"><div class="emocao-bar-bg"><div class="emocao-bar-fill" style="width:${bp}%;background:${em.color}"></div></div><span class="emocao-pct" style="color:${em.color}">${pct}%</span></div><div class="emocao-count">${em.v} ocorrências</div></div>${i === 0 ? '<div class="emocao-crown">👑 Dominante</div>' : ''}</div>`;
   }).join('');
 }
 function renderizarEmocoesBoard(posts) {
@@ -1154,114 +1189,260 @@ function escapar(txt) {
   return txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 /* ============================================================
-   EXPORTAR PDF — captura os gráficos da tela atual
+   EXPORTAR PDF — relatório com dados reais (texto + tabelas)
+   Não usa screenshot: todo o conteúdo é gerado via jsPDF/AutoTable.
 ============================================================ */
+
+// Reaproveita a mesma lógica de frequência de palavras usada na nuvem,
+// mas devolve um array de dados em vez de mexer no DOM.
+function computarPalavrasFrequentes(posts, limite = 10) {
+  const stopwords = new Set(['de','a','o','e','em','que','do','da','no','na','um','uma','para','com','se','por','mais','mas','como','seu','sua','os','as','dos','das','pelo','pela','também','ou','aos','nas','nos','foi','esse','essa','são','bem','já','sobre','isso','quando','então','pode','há','só','até','está','ser','ter','não','lá','eu','me','te','ele','ela','nós','eles','você']);
+  const freq = {};
+  posts.forEach(p => {
+    ((p.texto || '') + ' ' + (p.descricao || '')).toLowerCase()
+      .replace(/[^\wáéíóúãõâêîôûàèìòùç\s]/g, '').split(/\s+/).forEach(w => {
+        if (w.length > 3 && !stopwords.has(w)) freq[w] = (freq[w] || 0) + 1;
+      });
+  });
+  return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, limite);
+}
+
+// Reaproveita a mesma lógica do ranking de perfis, devolvendo dados puros.
+function computarRankingAutores(posts, limite = 10) {
+  const freq = {};
+  posts.forEach(p => {
+    const autor = p.autor || '[deletado]';
+    if (autor === '[deletado]' || autor === 'AutoModerator') return;
+    if (!freq[autor]) freq[autor] = { total: 0, pos: 0, neg: 0, neu: 0, comentarios: 0 };
+    freq[autor].total++;
+    freq[autor].comentarios += (p.comentarios || 0);
+    const cls = obterClasse(p.sentimento);
+    if (cls === 'pos') freq[autor].pos++; else if (cls === 'neg') freq[autor].neg++; else freq[autor].neu++;
+  });
+  return Object.entries(freq).sort((a, b) => b[1].total - a[1].total).slice(0, limite);
+}
+
+function calcularDistribuicao(posts) {
+  const total = posts.length;
+  const nPos = posts.filter(p => obterClasse(p.sentimento) === 'pos').length;
+  const nNeu = posts.filter(p => obterClasse(p.sentimento) === 'neu').length;
+  const nNeg = posts.filter(p => obterClasse(p.sentimento) === 'neg').length;
+  return {
+    total, nPos, nNeu, nNeg,
+    pPos: total ? Math.round(nPos / total * 100) : 0,
+    pNeu: total ? Math.round(nNeu / total * 100) : 0,
+    pNeg: total ? Math.round(nNeg / total * 100) : 0,
+  };
+}
+
+const NOME_FONTE = { reddit: 'Reddit', bluesky: 'Bluesky', web: 'Web / Notícias', youtube: 'YouTube' };
+
 async function exportarPDF() {
-  // Verifica se as libs estão disponíveis
-  if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-    alert('Aguarde as bibliotecas de PDF carregarem e tente novamente.');
+  if (typeof window.jspdf === 'undefined') {
+    alert('Aguarde a biblioteca de PDF carregar e tente novamente.');
     return;
   }
   const { jsPDF } = window.jspdf;
 
-  // Detecta se estamos na tela geral ou na tela de detalhe por fonte
   const telaDetalhe = !document.getElementById('tela-detalhe-fonte').classList.contains('hidden');
-  const tela        = telaDetalhe
-    ? document.getElementById('tela-detalhe-fonte')
-    : document.getElementById('tela-resultados');
+  const fonteAtual  = telaDetalhe ? fonteDetalheAtual : null;
+  const posts       = telaDetalhe ? (dadosFontes[fonteAtual] || []) : todosOsPosts;
 
-  const titulo      = telaDetalhe
-    ? (document.getElementById('detalhe-fonte-titulo')?.textContent || 'Detalhamento por Fonte')
+  const titulo = telaDetalhe
+    ? `SentimentRadar — Relatório: ${NOME_FONTE[fonteAtual] || fonteAtual}`
     : 'SentimentRadar — Relatório Geral';
 
   const termo       = document.getElementById('results-term')?.textContent || '';
   const dataGeracao = new Date().toLocaleString('pt-BR');
 
-  // Botões e paginação ficam ocultos no PDF
-  const hideSelectors = ['.btn-back', '.btn-export', '.posts-pagination', '.filter-bar'];
-  const hiddenEls = [];
-  hideSelectors.forEach(sel => {
-    tela.querySelectorAll(sel).forEach(el => {
-      hiddenEls.push({ el, display: el.style.display });
-      el.style.display = 'none';
-    });
-  });
+  const pdf     = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pdfW    = pdf.internal.pageSize.getWidth();
+  const margin  = 12;
 
-  try {
-    const canvas = await html2canvas(tela, {
-      scale: 1.5,
-      useCORS: true,
-      logging: false,
-      backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark'
-        ? '#0d1526'
-        : '#f1f5f9'
-    });
+  const COR_HEADER = [13, 21, 38];
+  const COR_POS    = [74, 222, 128];
+  const COR_NEU    = [148, 163, 184];
+  const COR_NEG    = [248, 113, 113];
 
-    const imgData  = canvas.toDataURL('image/jpeg', 0.92);
-    const pdf      = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pdfW     = pdf.internal.pageSize.getWidth();
-    const pdfH     = pdf.internal.pageSize.getHeight();
-    const margin   = 10;
-    const usableW  = pdfW - margin * 2;
-    const imgH     = (canvas.height * usableW) / canvas.width;
-
-    // Cabeçalho
-    pdf.setFillColor(13, 21, 38);
-    pdf.rect(0, 0, pdfW, 18, 'F');
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(titulo, margin, 11);
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(`Gerado em ${dataGeracao}  |  ${termo}`, pdfW - margin, 11, { align: 'right' });
-
-    // Imagem paginada
-    let yOffset = 0;
-    const startY = 20;
-    const pageImgH = pdfH - startY - margin;
-
-    while (yOffset < imgH) {
-      if (yOffset > 0) {
-        pdf.addPage();
-        pdf.setFillColor(13, 21, 38);
-        pdf.rect(0, 0, pdfW, 14, 'F');
-        pdf.setTextColor(200, 200, 200);
-        pdf.setFontSize(8);
-        pdf.text(titulo, margin, 9);
-      }
-
-      const sliceH    = Math.min(pageImgH, imgH - yOffset);
-      const srcY      = yOffset * (canvas.height / imgH);
-      const srcH      = sliceH * (canvas.height / imgH);
-
-      // Recorta a fatia da imagem
-      const tmpCanvas = document.createElement('canvas');
-      tmpCanvas.width  = canvas.width;
-      tmpCanvas.height = srcH;
-      const ctx = tmpCanvas.getContext('2d');
-      ctx.drawImage(canvas, 0, -srcY);
-      const sliceData = tmpCanvas.toDataURL('image/jpeg', 0.92);
-
-      pdf.addImage(sliceData, 'JPEG', margin, yOffset > 0 ? 16 : startY, usableW, sliceH);
-      yOffset += pageImgH;
-    }
-
-    // Rodapé na última página
-    pdf.setFontSize(7);
-    pdf.setTextColor(120, 120, 120);
-    pdf.text('SentimentRadar — Análise léxica de sentimentos — Reddit · Bluesky · Web', pdfW / 2, pdfH - 4, { align: 'center' });
-
-    const nomeArquivo = telaDetalhe
-      ? `sentimentradar-${document.getElementById('detalhe-fonte-titulo')?.textContent?.replace(/[^a-z0-9]/gi, '-').toLowerCase() || 'detalhe'}.pdf`
-      : 'sentimentradar-relatorio-geral.pdf';
-
-    pdf.save(nomeArquivo);
-
-  } finally {
-    // Restaura visibilidade dos elementos
-    hiddenEls.forEach(({ el, display }) => { el.style.display = display; });
+  function desenharCabecalho(doc) {
+    doc.setFillColor(...COR_HEADER);
+    doc.rect(0, 0, pdfW, 18, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(titulo, margin, 11);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Gerado em ${dataGeracao}`, pdfW - margin, 11, { align: 'right' });
   }
+
+  function desenharRodape(doc) {
+    const totalPaginas = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPaginas; i++) {
+      doc.setPage(i);
+      const h = doc.internal.pageSize.getHeight();
+      doc.setFontSize(7);
+      doc.setTextColor(140, 140, 140);
+      doc.text('SentimentRadar — Análise léxica de sentimentos · Reddit · Bluesky · Web · YouTube', margin, h - 6);
+      doc.text(`Página ${i} de ${totalPaginas}`, pdfW - margin, h - 6, { align: 'right' });
+    }
+  }
+
+  desenharCabecalho(pdf);
+  let y = 28;
+
+  // ── Resumo da busca ──────────────────────────────────────────
+  pdf.setTextColor(30, 30, 30);
+  pdf.setFontSize(11);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Termo pesquisado', margin, y);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(10);
+  pdf.text(termo || '—', margin, y + 6);
+  y += 16;
+
+  const dist = calcularDistribuicao(posts);
+
+  // ── Cards de métricas (texto, não imagem) ────────────────────
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(11);
+  pdf.text('Resumo geral', margin, y);
+  y += 6;
+
+  pdf.autoTable({
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [['Total de publicações', 'Positivas', 'Neutras', 'Negativas']],
+    body: [[
+      String(dist.total),
+      `${dist.nPos} (${dist.pPos}%)`,
+      `${dist.nNeu} (${dist.pNeu}%)`,
+      `${dist.nNeg} (${dist.pNeg}%)`,
+    ]],
+    theme: 'grid',
+    headStyles: { fillColor: COR_HEADER, fontSize: 9 },
+    bodyStyles: { fontSize: 10, halign: 'center' },
+    styles: { cellPadding: 3 },
+  });
+  y = pdf.lastAutoTable.finalY + 10;
+
+  // ── Distribuição por fonte (somente no relatório geral) ──────
+  if (!telaDetalhe) {
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.text('Distribuição por fonte', margin, y);
+    y += 4;
+
+    const linhasFonte = Object.entries(dadosFontes).map(([key, arr]) => {
+      const d = calcularDistribuicao(arr);
+      const cmt = arr.reduce((a, p) => a + (p.comentarios || 0), 0);
+      const likes = arr.reduce((a, p) => a + (p.upvotes || 0), 0);
+      return [NOME_FONTE[key] || key, String(d.total), `${d.pPos}%`, `${d.pNeu}%`, `${d.pNeg}%`, cmt.toLocaleString('pt-BR'), likes.toLocaleString('pt-BR')];
+    });
+
+    pdf.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Fonte', 'Publicações', '% Pos.', '% Neu.', '% Neg.', 'Comentários', 'Curtidas/Upvotes']],
+      body: linhasFonte,
+      theme: 'striped',
+      headStyles: { fillColor: COR_HEADER, fontSize: 8 },
+      bodyStyles: { fontSize: 8.5 },
+    });
+    y = pdf.lastAutoTable.finalY + 10;
+  }
+
+  // ── Palavras mais frequentes ──────────────────────────────────
+  const palavras = computarPalavrasFrequentes(posts, 10);
+  if (palavras.length) {
+    if (y > 240) { pdf.addPage(); desenharCabecalho(pdf); y = 28; }
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.text('Palavras mais frequentes', margin, y);
+    y += 4;
+    pdf.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['#', 'Palavra', 'Ocorrências']],
+      body: palavras.map(([w, c], i) => [String(i + 1), w, String(c)]),
+      theme: 'striped',
+      headStyles: { fillColor: COR_HEADER, fontSize: 8 },
+      bodyStyles: { fontSize: 8.5 },
+      columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 30, halign: 'center' } },
+    });
+    y = pdf.lastAutoTable.finalY + 10;
+  }
+
+  // ── Ranking de autores por engajamento ───────────────────────
+  const ranking = computarRankingAutores(posts, 10);
+  if (ranking.length) {
+    if (y > 230) { pdf.addPage(); desenharCabecalho(pdf); y = 28; }
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.text('Ranking de autores por engajamento', margin, y);
+    y += 4;
+    pdf.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['#', 'Autor', 'Publicações', 'Positivas', 'Neutras', 'Negativas', 'Comentários']],
+      body: ranking.map(([autor, d], i) => [String(i + 1), autor, String(d.total), String(d.pos), String(d.neu), String(d.neg), d.comentarios.toLocaleString('pt-BR')]),
+      theme: 'striped',
+      headStyles: { fillColor: COR_HEADER, fontSize: 8 },
+      bodyStyles: { fontSize: 8 },
+    });
+    y = pdf.lastAutoTable.finalY + 10;
+  }
+
+  // ── Publicações com maior engajamento ────────────────────────
+  const topPosts = [...posts]
+    .sort((a, b) => ((b.comentarios || 0) + (b.upvotes || 0)) - ((a.comentarios || 0) + (a.upvotes || 0)))
+    .slice(0, 15);
+
+  if (topPosts.length) {
+    if (y > 220) { pdf.addPage(); desenharCabecalho(pdf); y = 28; }
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.text('Publicações com maior engajamento', margin, y);
+    y += 4;
+    pdf.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Fonte', 'Texto', 'Sentimento', 'Engajamento', 'Data']],
+      body: topPosts.map(p => [
+        NOME_FONTE[p.fonte] || p.fonte || '—',
+        (p.texto || '').slice(0, 90),
+        p.sentimento || '—',
+        String((p.comentarios || 0) + (p.upvotes || 0)),
+        p.dataPost ? new Date(p.dataPost).toLocaleDateString('pt-BR') : '—',
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: COR_HEADER, fontSize: 8 },
+      bodyStyles: { fontSize: 7.5, valign: 'top' },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 22, halign: 'center' },
+        4: { cellWidth: 22, halign: 'center' },
+      },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 2) {
+          const v = (data.cell.raw || '').toLowerCase();
+          if (v.includes('positivo')) data.cell.styles.textColor = COR_POS;
+          else if (v.includes('negativo')) data.cell.styles.textColor = COR_NEG;
+          else data.cell.styles.textColor = COR_NEU;
+        }
+      },
+    });
+  }
+
+  desenharRodape(pdf);
+
+  const nomeArquivo = telaDetalhe
+    ? `sentimentradar-${(fonteAtual || 'detalhe').toLowerCase()}.pdf`
+    : 'sentimentradar-relatorio-geral.pdf';
+
+  pdf.save(nomeArquivo);
 }
 
 function exportarCSV() {
